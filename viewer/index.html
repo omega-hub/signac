@@ -1,0 +1,43 @@
+<html lang="en">
+<head>
+    <title>Signac</title>
+    <script src="d3.min.js" charset="utf-8"></script>
+    
+    <script src="jquery-1.11.1.min.js"></script>
+    <script src="jqwidgets/jqxcore.js"></script>
+    <script src="jqwidgets/jqxbuttons.js"></script>
+    <script src="jqwidgets/jqxtoolbar.js"></script>
+    <script src="jqwidgets/jqxlayout.js"></script>
+    <script src="jqwidgets/jqxribbon.js"></script>
+    <script src="jqwidgets/jqxwindow.js"></script>
+    <script src="jqwidgets/jqxdragdrop.js"></script>
+    <script src="jqwidgets/jqxdocking.js"></script>
+    <script src="jqwidgets/jqxdockinglayout.js"></script>
+    <script src="jqwidgets/jqxslider.js"></script>
+    <link href="jqwidgets/styles/jqx.base.css" rel="stylesheet">
+    
+    <script src="porthole/res/porthole.js"></script>
+</head>
+
+<body>
+    <link href="viewer.css" rel="stylesheet">
+    <div id="toolbar"></div>
+    
+    <div id="layout" style="right: 8px; left: 8px; position:absolute; top:42px; bottom:0px;">
+        <div data-container="FieldsPanel">
+            <div id="FieldsPanel"></div>
+        </div>
+        <div data-container="FiltersPanel">
+            <div id="FiltersPanel"></div>
+        </div>
+        <div data-container="PlotPanel">
+            <div id="PlotPanel">
+                <div id="panel0">
+                </div>
+            </div>
+        </div>
+    </div> 
+
+    <script src="viewer.js"></script>
+</body>
+</html>
