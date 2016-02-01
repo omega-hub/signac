@@ -9,7 +9,7 @@ fields = ['ZMass', 'ZPt', 'ZEta',
     'MDr', 'Njets', 'Met', 'McType']
 for f in fields: queueCommand("{0} = ds.addField('{0}', FieldType.Float, '{0}')".format(f))   
 
-ds.open("C:/dev/omegalib/apps/signac-data/simdata.csv", CsvLoader())
+ds.open("/Users/febret/omegalib/apps/simdata.csv", CsvLoader())
 
 f = Filter()
 

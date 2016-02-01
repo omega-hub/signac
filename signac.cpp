@@ -38,6 +38,7 @@ public:
     ModuleCore() : EngineModule("signac")
     {
         ModuleServices::addModule(this);
+        requestOpenGLProfile(EngineModule::CoreProfile);
     }
 
     void update(const UpdateContext& context)

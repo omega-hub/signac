@@ -12,6 +12,56 @@ public:
     String path;
     uint blockStart;
     uint blockLength;
+    char** rows;
+    
+    LoadTask()
+    {
+    	rows = (char**)malloc(MAX_ROWS_PER_BLOCK * sizeof(char*));
+    }
+    
+    ~LoadTask()
+    {
+		free(rows);
+    }
+
+    // parse a float column from csv string data. return the array of parsed floats
+    // and the number of parsed rows.
+    float* parseFloatField(char* csv, size_t csvsize, int fieldidx, int* nrows, float* vmin, float* vmax)
+    {
+        *nrows = 0;
+        float* data = NULL;
+
+        // count rows and save beginning of each row in rows array
+        rows[0] = csv;
+        for(uint i = 0; i < csvsize; i++) if(csv[i] == '\n')
+        {
+            csv[i] = 0;
+            (*nrows)++;
+            rows[*nrows] = &csv[i + 1];
+        }
+
+        data = (float*)malloc(*nrows * sizeof(float));
+
+        // Parse fieldidx-th column for each row.
+        // HARDCODED SKIP HEADER
+        for(uint i = 1; i < *nrows; i++)
+        {
+            int c = fieldidx;
+            char* fieldstart = rows[i];
+            while(c > 0)
+            {
+                fieldstart = strchr(fieldstart, ',');
+                // skip the comma
+                fieldstart++;
+                c--;
+            }
+            data[i - 1] = atof(fieldstart);
+            *vmin = std::min(*vmin, data[i - 1]);
+            *vmax = std::max(*vmax, data[i - 1]);
+        }
+
+        return data;
+    }
 
     void execute(WorkerTask::TaskInfo* ti)
     {
@@ -20,19 +70,27 @@ public:
         {
             // Read CSV block.
             FILE* f = fopen(fullpath.c_str(), "rb");
+            
+            if(f == NULL)
+            {
+            	oferror("[signac:LoadTask] Could not open file %1%", %fullpath);
+            }
+            
             fseek(f, blockStart, SEEK_SET);
             char* csv = (char*)malloc(blockLength);
+            oassert(csv != NULL);
             size_t readSize = fread(csv, 1, blockLength, f);
 
             // Are we reading the end of the file?
             bool final = readSize < blockLength;
 
             // Parse csv data column into a float array.
-            int nrows;
+            int nrows = 0;
             float min = field->getInfo()->floatRangeMin;
             float max = field->getInfo()->floatRangeMax;
+            int index = field->getInfo()->index;
 
-            float* data = parseFloatField(csv, readSize, field->getInfo()->index, &nrows, &min, &max);
+            float* data = parseFloatField(csv, readSize, index, &nrows, &min, &max);
 
             field->getInfo()->floatRangeMin = min;
             field->getInfo()->floatRangeMax = max;
@@ -76,45 +134,6 @@ public:
         }
     }
 
-    // parse a float column from csv string data. return the array of parsed floats
-    // and the number of parsed rows.
-    float* parseFloatField(char* csv, uint csvsize, int fieldidx, int* nrows, float* vmin, float* vmax)
-    {
-        *nrows = 0;
-        float* data = NULL;
-        char* rows[MAX_ROWS_PER_BLOCK];
-
-        // count rows and save beginning of each row in rows array
-        rows[0] = csv;
-        for(uint i = 0; i < csvsize; i++) if(csv[i] == '\n')
-        {
-            csv[i] = 0;
-            (*nrows)++;
-            rows[*nrows] = &csv[i + 1];
-        }
-
-        data = (float*)malloc(*nrows * sizeof(float));
-
-        // Parse fieldidx-th column for each row.
-        // HARDCODED SKIP HEADER
-        for(uint i = 1; i < *nrows; i++)
-        {
-            int c = fieldidx;
-            char* fieldstart = rows[i];
-            while(c > 0)
-            {
-                fieldstart = strchr(fieldstart, ',');
-                // skip the comma
-                fieldstart++;
-                c--;
-            }
-            data[i - 1] = atof(fieldstart);
-            *vmin = std::min(*vmin, data[i - 1]);
-            *vmax = std::max(*vmax, data[i - 1]);
-        }
-
-        return data;
-    }
 };
 
 ///////////////////////////////////////////////////////////////////////////////
