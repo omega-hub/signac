@@ -1,11 +1,11 @@
 #version 410
-in float x;
-in float y;
+in double x;
+in double y;
 
-uniform float xmin;
-uniform float xmax;
-uniform float ymin;
-uniform float ymax;
+uniform double xmin;
+uniform double xmax;
+uniform double ymin;
+uniform double ymax;
 
 void main(void)
 {

@@ -1,5 +1,5 @@
 request_dependency(porthole)
-module_version(1.0)
+module_version(2.0)
 
 add_library(signac MODULE 
     signac.cpp
@@ -9,7 +9,9 @@ add_library(signac MODULE
     Dataset.h
     Loader.h
     Scatterplot.cpp
-    Scatterplot.h)
+    Scatterplot.h
+    XyzbLoader.cpp
+    XyzbLoader.h)
     
 target_link_libraries(signac omega)
 

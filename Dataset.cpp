@@ -1,11 +1,23 @@
 #include "Dataset.h"
 #include "Loader.h"
 
+bool Dataset::mysDoublePrecision = false;
+
 ///////////////////////////////////////////////////////////////////////////////
 FieldInfo::FieldInfo()
 {
     floatRangeMax = -std::numeric_limits<float>::max();
     floatRangeMin = std::numeric_limits<float>::max();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+size_t FieldInfo::getElementSize()
+{
+    switch(type)
+    {
+    case Float: return Dataset::useDoublePrecision() ? 8 : 4;
+    }
+    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -18,7 +30,6 @@ Field::Field(FieldInfo* info, Dataset* ds):
     stamp(0),
     length(0)
 {
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -32,7 +43,7 @@ Dataset::Dataset():
 Field* Dataset::addField(const String& id, FieldInfo::FieldType type, String name)
 {
     if(name == "") name = id;
-    unsigned int index = myFields.size();
+    unsigned int index = (unsigned int)myFields.size();
 
     FieldInfo* fi = new FieldInfo();
     fi->label = name;
@@ -85,7 +96,8 @@ VertexBuffer* Field::getGpuBuffer(const DrawContext& dc)
     {
         myGpuBuffer(dc) = dc.gpuContext->createVertexBuffer();
         myGpuBuffer(dc)->setType(VertexBuffer::VertexData);
-        myGpuBuffer(dc)->setAttribute(0, VertexBuffer::Float);
+        myGpuBuffer(dc)->setAttribute(0, 
+            dataset->useDoublePrecision ? VertexBuffer::Double : VertexBuffer::Float);
         ofmsg("[Field::getGpuBuffer create] field %1%", %myInfo->id);
     }
 
@@ -95,7 +107,7 @@ VertexBuffer* Field::getGpuBuffer(const DrawContext& dc)
         lock.lock();
         myGpuBuffer.stamp(dc) = stamp;
         myGpuBuffer(dc)->setData(length * myInfo->getElementSize(), data);
-        //ofmsg("[Field::getGpuBuffer update] field %1%", %myInfo->id);
+        //ofmsg("[Field::getGpuBuffer update] field %1% length %2%", %myInfo->id %length);
         lock.unlock();
     }
     return myGpuBuffer(dc);
@@ -158,6 +170,50 @@ void Filter::setNormalizedRange(uint index, float fmin, float fmax)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+template<typename T> 
+void Filter::filterKernel(double timestamp)
+{
+    uint sz = myField[0]->length;
+    uint* indices = (uint*)malloc(sz * sizeof(uint));
+    memset(indices, 0, sz * sizeof(uint));
+
+    uint len = 0;
+    for(uint i = 0; i < sz; i++)
+    {
+        // if the filter stamp was updated, we are processing stale data. exit now.
+        if(myRangeStamp > timestamp)
+        {
+            free(indices);
+            return;
+        }
+
+        bool pass = true;
+        for(uint j = 0; j < myNumFields; j++)
+        {
+            T* d = (T*)myField[j]->data;
+            if(d[i] < myMin[j] || d[i] > myMax[j])
+            {
+                pass = false;
+                break;
+            }
+        }
+
+        if(pass)
+        {
+            indices[len] = i; len++;
+        }
+    }
+    // Done filtering. copy the new indices over the old ones.
+    myLock.lock();
+    if(myIndices != NULL) free(myIndices);
+    myIndices = indices;
+    myIndexLen = len;
+    //ofmsg("index generated - length = %1%", %myIndexLen);
+    myIndexStamp = otimestamp();
+    myLock.unlock();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 void Filter::execute(WorkerTask::TaskInfo* ti)
 {
     if(myNumFields == 0)
@@ -177,46 +233,8 @@ void Filter::execute(WorkerTask::TaskInfo* ti)
         }
     }
 
-    uint sz = myField[0]->length;
-
-    uint* indices = (uint*)malloc(sz * sizeof(uint));
-    memset(indices, 0, sz * sizeof(uint));
-
-    uint len = 0;
-    for(uint i = 0; i < sz; i++)
-    {
-        // if the filter stamp was updated, we are processing stale data. exit now.
-        if(myRangeStamp > ti->getTimestamp())
-        {
-            free(indices);
-            return;
-        }
-        
-        bool pass = true;
-        for(uint j = 0; j < myNumFields; j++)
-        {
-            float* d = (float*)myField[j]->data;
-            if(d[i] < myMin[j] || d[i] > myMax[j])
-            {
-                pass = false; 
-                break;
-            }
-        }
-
-        if(pass)
-        {
-            indices[len] = i; len++;
-        }
-    }
-
-    // Done filtering. copy the new indices over the old ones.
-    myLock.lock();
-    if(myIndices != NULL) free(myIndices);
-    myIndices = indices;
-    myIndexLen = len;
-    ofmsg("index generated - length = %1%", %myIndexLen);
-    myIndexStamp = otimestamp();
-    myLock.unlock();
+    if(Dataset::useDoublePrecision()) filterKernel<double>(ti->getTimestamp());
+    else filterKernel<float>(ti->getTimestamp());
 }
 
 ///////////////////////////////////////////////////////////////////////////////

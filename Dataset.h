@@ -20,23 +20,11 @@ public:
     FieldType type;
     unsigned int index;
 
-    union 
-    {
-        float floatRangeMin;
-    };
-    union
-    {
-        float floatRangeMax;
-    };
+    double floatRangeMin;
+    double floatRangeMax;
 
-    size_t getElementSize()
-    {
-        switch(type)
-        {
-        case Float: return 4;
-        }
-        return 0;
-    }
+    size_t getElementSize();
+
 };
 
 class Dataset;
@@ -89,6 +77,10 @@ public:
     double getIndexStamp() { return myIndexStamp; }
 
 private:
+    template<typename T> void filterKernel(double timestamp);
+
+
+private:
     WorkerPool myUpdater;
     GpuRef<VertexBuffer> myGpuBuffer;
     Lock myLock;
@@ -109,7 +101,8 @@ class Dataset : public ReferenceType
 {
 public:
     static const int MaxFields = 128;
-
+    static void setDoublePrecision(bool enabled) { mysDoublePrecision = enabled; }
+    static bool useDoublePrecision() { return mysDoublePrecision; }
 public:
     Dataset();
 
@@ -120,6 +113,8 @@ public:
     void load(Field* f);
 
 private:
+    static bool mysDoublePrecision;
+
     typedef List< Ref<Field> > FieldList;
     FieldList myFields;
     String myFilename;

@@ -85,6 +85,8 @@ BOOST_PYTHON_MODULE(signac)
     PYAPI_REF_BASE_CLASS_WITH_CTOR(Dataset)
         PYAPI_METHOD(Dataset, open)
         PYAPI_REF_GETTER(Dataset, addField)
+        PYAPI_STATIC_METHOD(Dataset, useDoublePrecision)
+        PYAPI_STATIC_METHOD(Dataset, setDoublePrecision)
         ;
 
     PYAPI_REF_BASE_CLASS_WITH_CTOR(Filter)

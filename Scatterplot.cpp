@@ -52,6 +52,8 @@ void PlotBrush::draw(Plot* plot, const DrawContext& dc)
     Field* fx = plot->getX();
     Field* fy = plot->getY();
 
+    uint l = min(fx->length, fy->length);
+
     VertexBuffer* xgpubuf = fx->getGpuBuffer(dc);
     VertexBuffer* ygpubuf = fy->getGpuBuffer(dc);
 
@@ -86,7 +88,7 @@ void PlotBrush::draw(Plot* plot, const DrawContext& dc)
         }
         else
         {
-            myDrawCall(dc)->items = fx->length;
+            myDrawCall(dc)->items = l;
             myDrawCall(dc)->run();
         }
         oassert(!oglError);

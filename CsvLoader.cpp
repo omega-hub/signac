@@ -16,20 +16,21 @@ public:
     
     LoadTask()
     {
-    	rows = (char**)malloc(MAX_ROWS_PER_BLOCK * sizeof(char*));
+        rows = (char**)malloc(MAX_ROWS_PER_BLOCK * sizeof(char*));
     }
     
     ~LoadTask()
     {
-		free(rows);
+        free(rows);
     }
 
     // parse a float column from csv string data. return the array of parsed floats
     // and the number of parsed rows.
-    float* parseFloatField(char* csv, size_t csvsize, int fieldidx, int* nrows, float* vmin, float* vmax)
+    template<typename T>
+    void* parseFloatField(char* csv, size_t csvsize, int fieldidx, int* nrows, double* vmin, double* vmax)
     {
         *nrows = 0;
-        float* data = NULL;
+        T* data = NULL;
 
         // count rows and save beginning of each row in rows array
         rows[0] = csv;
@@ -40,13 +41,14 @@ public:
             rows[*nrows] = &csv[i + 1];
         }
 
-        data = (float*)malloc(*nrows * sizeof(float));
+        data = (T*)malloc(*nrows * sizeof(T));
 
         // Parse fieldidx-th column for each row.
         // HARDCODED SKIP HEADER
         for(uint i = 1; i < *nrows; i++)
         {
             int c = fieldidx;
+
             char* fieldstart = rows[i];
             while(c > 0)
             {
@@ -55,9 +57,10 @@ public:
                 fieldstart++;
                 c--;
             }
-            data[i - 1] = atof(fieldstart);
-            *vmin = std::min(*vmin, data[i - 1]);
-            *vmax = std::max(*vmax, data[i - 1]);
+            T v = atof(fieldstart);
+            data[i - 1] = v;
+            *vmin = *vmin < v ? *vmin : v;
+            *vmax = *vmax > v ? *vmax : v;
         }
 
         return data;
@@ -73,7 +76,7 @@ public:
             
             if(f == NULL)
             {
-            	oferror("[signac:LoadTask] Could not open file %1%", %fullpath);
+                oferror("[signac:LoadTask] Could not open file %1%", %fullpath);
             }
             
             fseek(f, blockStart, SEEK_SET);
@@ -86,41 +89,51 @@ public:
 
             // Parse csv data column into a float array.
             int nrows = 0;
-            float min = field->getInfo()->floatRangeMin;
-            float max = field->getInfo()->floatRangeMax;
+            double min = field->getInfo()->floatRangeMin;
+            double max = field->getInfo()->floatRangeMax;
             int index = field->getInfo()->index;
 
-            float* data = parseFloatField(csv, readSize, index, &nrows, &min, &max);
+            void* data = NULL;
+            
+            if(Dataset::useDoublePrecision())
+            {
+                data = parseFloatField<double>(csv, readSize, index, &nrows, &min, &max);
+            }
+            else
+            {
+                data = parseFloatField<float>(csv, readSize, index, &nrows, &min, &max);
+            }
 
             field->getInfo()->floatRangeMin = min;
             field->getInfo()->floatRangeMax = max;
 
             field->lock.lock();
             // Extend the field data memory and copy the new data into it.
+            size_t elemSize = field->getInfo()->getElementSize();
             if(field->data == NULL)
             {
-                field->data = (char*)malloc(nrows * sizeof(float));
+                field->data = (char*)malloc(nrows * elemSize);
             }
             else
             {
-                field->data = (char*)realloc(field->data, (field->length + nrows) * sizeof(float));
+                field->data = (char*)realloc(field->data, (field->length + nrows) * elemSize);
             }
             memcpy(
                 &field->data[field->length * field->getInfo()->getElementSize()],
                 data,
-                nrows * sizeof(float));
+                nrows * elemSize);
 
             // Update field length
             field->length += nrows;
+            field->loaded = final;
+            field->stamp = otimestamp();
+            //ofmsg("Field %1% l=%2%", %field->getInfo()->id %field->length);
 
             field->lock.unlock();
 
             free(data);
             free(csv);
             fclose(f);
-
-            field->loaded = final;
-            field->stamp = otimestamp();
 
             if(final)
             {
@@ -129,6 +142,7 @@ public:
             else
             {
                 blockStart += BLOCK_SIZE;
+                //ofmsg("Queuing block %1%", %blockStart);
                 getPool()->queue(this);
             }
         }
