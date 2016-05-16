@@ -10,8 +10,7 @@ add_library(signac MODULE
     Loader.h
     Scatterplot.cpp
     Scatterplot.h
-    XyzbLoader.cpp
-    XyzbLoader.h)
+    XyzbLoader.cpp)
     
 target_link_libraries(signac omega)
 
