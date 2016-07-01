@@ -89,9 +89,9 @@ public:
 
             // Parse csv data column into a float array.
             int nrows = 0;
-            double min = field->getInfo()->floatRangeMin;
-            double max = field->getInfo()->floatRangeMax;
-            int index = field->getInfo()->index;
+            double min = field->getDimension()->floatRangeMin;
+            double max = field->getDimension()->floatRangeMax;
+            int index = field->getDimension()->index;
 
             void* data = NULL;
             
@@ -104,27 +104,27 @@ public:
                 data = parseFloatField<float>(csv, readSize, index, &nrows, &min, &max);
             }
 
-            field->getInfo()->floatRangeMin = min;
-            field->getInfo()->floatRangeMax = max;
+            field->getDimension()->floatRangeMin = min;
+            field->getDimension()->floatRangeMax = max;
 
             field->lock.lock();
             // Extend the field data memory and copy the new data into it.
-            size_t elemSize = field->getInfo()->getElementSize();
+            size_t elemSize = field->getDimension()->getElementSize();
             if(field->data == NULL)
             {
                 field->data = (char*)malloc(nrows * elemSize);
             }
             else
             {
-                field->data = (char*)realloc(field->data, (field->length + nrows) * elemSize);
+                field->data = (char*)realloc(field->data, (field->domain.length + nrows) * elemSize);
             }
             memcpy(
-                &field->data[field->length * field->getInfo()->getElementSize()],
+                &field->data[field->domain.length * field->getDimension()->getElementSize()],
                 data,
                 nrows * elemSize);
 
             // Update field length
-            field->length += nrows;
+            field->domain.length += nrows;
             field->loaded = final;
             field->stamp = otimestamp();
             //ofmsg("Field %1% l=%2%", %field->getInfo()->id %field->length);
@@ -137,7 +137,7 @@ public:
 
             if(final)
             {
-                ofmsg("Loading %1% finished", %field->getInfo()->id);
+                ofmsg("Loading %1% finished", %field->getDimension()->id);
             }
             else
             {

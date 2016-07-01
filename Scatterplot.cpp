@@ -52,10 +52,10 @@ void PlotBrush::draw(Plot* plot, const DrawContext& dc)
     Field* fx = plot->getX();
     Field* fy = plot->getY();
 
-    uint l = min(fx->length, fy->length);
+    uint l = static_cast<uint>(min(fx->domain.length, fy->domain.length));
 
-    VertexBuffer* xgpubuf = fx->getGpuBuffer(dc);
-    VertexBuffer* ygpubuf = fy->getGpuBuffer(dc);
+    GpuBuffer* xgpubuf = fx->getGpuBuffer(dc);
+    GpuBuffer* ygpubuf = fy->getGpuBuffer(dc);
 
     if(xgpubuf != NULL && ygpubuf != NULL)
     {
@@ -63,10 +63,12 @@ void PlotBrush::draw(Plot* plot, const DrawContext& dc)
         myVA(dc)->setBuffer(1, ygpubuf);
 
         // Set ranges
-        myUMinX(dc)->set(fx->getInfo()->floatRangeMin);
-        myUMinY(dc)->set(fy->getInfo()->floatRangeMin);
-        myUMaxX(dc)->set(fx->getInfo()->floatRangeMax);
-        myUMaxY(dc)->set(fy->getInfo()->floatRangeMax);
+        Dimension* dmx = fx->getDimension();
+        Dimension* dmy = fy->getDimension();
+        myUMinX(dc)->set(dmx->floatRangeMin);
+        myUMinY(dc)->set(dmy->floatRangeMin);
+        myUMaxX(dc)->set(dmx->floatRangeMax);
+        myUMaxY(dc)->set(dmy->floatRangeMax);
 
         //glEnable(GL_BLEND);
         glEnable(GL_PROGRAM_POINT_SIZE);
@@ -128,7 +130,7 @@ void Plot::setSize(int width, int height)
 void Plot::setX(Field* x)
 {
     myX = x;
-    myX->dataset->load(myX);
+    myX->getDimension()->dataset->load(myX);
     refresh();
 }
 
@@ -136,7 +138,7 @@ void Plot::setX(Field* x)
 void Plot::setY(Field* y)
 {
     myY = y;
-    myY->dataset->load(myY);
+    myY->getDimension()->dataset->load(myY);
     refresh();
 }
 

@@ -41,7 +41,7 @@ private:
     Ref<Filter> myFilter;
     GpuRef<GpuDrawCall> myDrawCall;
 
-    GpuRef<VertexArray> myVA;
+    GpuRef<GpuArray> myVA;
 
     // Uniforms
     GpuRef<Uniform> myUMinX;

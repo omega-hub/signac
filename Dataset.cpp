@@ -4,14 +4,15 @@
 bool Dataset::mysDoublePrecision = false;
 
 ///////////////////////////////////////////////////////////////////////////////
-FieldInfo::FieldInfo()
+Dimension::Dimension():
+dataset(NULL)
 {
     floatRangeMax = -std::numeric_limits<float>::max();
     floatRangeMin = std::numeric_limits<float>::max();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-size_t FieldInfo::getElementSize()
+size_t Dimension::getElementSize()
 {
     switch(type)
     {
@@ -21,56 +22,77 @@ size_t FieldInfo::getElementSize()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Field::Field(FieldInfo* info, Dataset* ds):
+Field::Field(Dimension* info, const Domain& dom):
     myInfo(info),
-    dataset(ds),
+    domain(dom),
     data(NULL),
     loaded(false),
     loading(false),
-    stamp(0),
-    length(0)
+    stamp(0)
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Dataset::Dataset():
-    myLoader(NULL)
+Dataset::Dataset(const String& name):
+    myLoader(NULL),
+    myName(name)
 {
 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Field* Dataset::addField(const String& id, FieldInfo::FieldType type, String name)
-{
-    if(name == "") name = id;
-    unsigned int index = (unsigned int)myFields.size();
+size_t Dataset::getNumRecords()
+{ 
+    return myLoader->getNumRecords();
+}
 
-    FieldInfo* fi = new FieldInfo();
+///////////////////////////////////////////////////////////////////////////////
+Dimension* Dataset::addDimension(const String& name, Dimension::Type type)
+{
+    unsigned int index = (unsigned int)myDimensions.size();
+
+    Dimension* fi = new Dimension();
+    fi->dataset = this;
     fi->label = name;
-    fi->id = id;
+    fi->id = name;
     fi->index = index;
     fi->type = type;
 
-    Field* f = new Field(fi, this);
+    myDimensions.push_back(fi);
+    return fi;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+Field* Dataset::addField(Dimension* dim, const Domain& dom)
+{
+    Field* f = new Field(dim, dom);
     myFields.push_back(f);
     return f;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+Field* Dataset::findField(Dimension* dimension, const Domain& domain)
+{
+    foreach(Field* f, myFields)
+    {
+        if(f->getDimension() == dimension && f->domain == domain) return f;
+    }
+    return NULL;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
-bool Dataset::open(const String& filename, Loader* loader)
+Field* Dataset::getOrCreateField(Dimension* dimension, const Domain& domain)
+{
+    Field* f = findField(dimension, domain);
+    if(f == NULL) f = addField(dimension, domain);
+    return f;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void Dataset::setLoader(Loader* loader)
 {
     myLoader = loader;
     myLoader->ref();
-    myFilename = filename;
-
-    String path;
-    if(DataManager::findFile(filename, path))
-    {
-        myLoader->open(filename);
-        return true;
-    }
-    return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -79,26 +101,26 @@ void Dataset::load(Field* f)
     if(!f->loading && !f->loaded)
     {
         f->loading = true;
-        ofmsg("[Field::getGpuBuffer queue for load] field %1%", %f->getInfo()->id);
+        //ofmsg("[Field::getGpuBuffer queue for load] field %1%", %f->getName());
         myLoader->load(f);
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-VertexBuffer* Field::getGpuBuffer(const DrawContext& dc)
+GpuBuffer* Field::getGpuBuffer(const DrawContext& dc)
 {
     if(data == NULL)
     {
-        dataset->load(this);
+        myInfo->dataset->load(this);
         return NULL;
     }
     if(myGpuBuffer(dc) == NULL)
     {
         myGpuBuffer(dc) = dc.gpuContext->createVertexBuffer();
-        myGpuBuffer(dc)->setType(VertexBuffer::VertexData);
+        myGpuBuffer(dc)->setType(GpuBuffer::VertexData);
         myGpuBuffer(dc)->setAttribute(0, 
-            dataset->useDoublePrecision ? VertexBuffer::Double : VertexBuffer::Float);
-        ofmsg("[Field::getGpuBuffer create] field %1%", %myInfo->id);
+            myInfo->dataset->useDoublePrecision() ? GpuBuffer::Double : GpuBuffer::Float);
+        //ofmsg("[Field::getGpuBuffer create] field %1%", %getName());
     }
 
     // Do we need to update the gpu buffer with new data?
@@ -106,7 +128,8 @@ VertexBuffer* Field::getGpuBuffer(const DrawContext& dc)
     {
         lock.lock();
         myGpuBuffer.stamp(dc) = stamp;
-        myGpuBuffer(dc)->setData(length * myInfo->getElementSize(), data);
+        size_t sz = domain.length * myInfo->getElementSize() / domain.decimation;
+        myGpuBuffer(dc)->setData(sz, data);
         //ofmsg("[Field::getGpuBuffer update] field %1% length %2%", %myInfo->id %length);
         lock.unlock();
     }
@@ -137,8 +160,8 @@ void Filter::setField(uint index, Field* f)
 {
     if(f != NULL) {
         myField[index] = f;
-        myMin[index] = f->getInfo()->floatRangeMin;
-        myMax[index] = f->getInfo()->floatRangeMax;
+        myMin[index] = f->getDimension()->floatRangeMin;
+        myMax[index] = f->getDimension()->floatRangeMax;
 
         // Count the number of consecutive valid fields.
         myNumFields = 0;
@@ -173,7 +196,7 @@ void Filter::setNormalizedRange(uint index, float fmin, float fmax)
 template<typename T> 
 void Filter::filterKernel(double timestamp)
 {
-    uint sz = myField[0]->length;
+    uint sz = static_cast<uint>(myField[0]->domain.length);
     uint* indices = (uint*)malloc(sz * sizeof(uint));
     memset(indices, 0, sz * sizeof(uint));
 
@@ -228,7 +251,7 @@ void Filter::execute(WorkerTask::TaskInfo* ti)
     {
         if(f != NULL && !f->loaded)
         {
-            f->dataset->load(f);
+            f->getDimension()->dataset->load(f);
             return;
         }
     }
@@ -243,12 +266,12 @@ void Filter::update()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-VertexBuffer* Filter::getIndexBuffer(const DrawContext& dc)
+GpuBuffer* Filter::getIndexBuffer(const DrawContext& dc)
 {
     if(myGpuBuffer(dc) == NULL)
     {
         myGpuBuffer(dc) = dc.gpuContext->createVertexBuffer();
-        myGpuBuffer(dc)->setType(VertexBuffer::IndexData);
+        myGpuBuffer(dc)->setType(GpuBuffer::IndexData);
     }
 
     // Do we need to update the gpu buffer with new data?
