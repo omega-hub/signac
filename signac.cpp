@@ -200,7 +200,7 @@ BOOST_PYTHON_MODULE(signac)
         PYAPI_METHOD(Program, clearDefines)
         ;
 
-        PYAPI_REF_BASE_CLASS_WITH_CTOR(Signac)
+    PYAPI_REF_BASE_CLASS_WITH_CTOR(Signac)
         PYAPI_STATIC_REF_GETTER(Signac, getInstance)
         PYAPI_REF_GETTER(Signac, addProgram)
         ;

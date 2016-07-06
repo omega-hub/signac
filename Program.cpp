@@ -103,14 +103,14 @@ bool Program::prepare(const DrawContext& dc)
         if(!myVertexShaderFilename.empty())
         {
             int c = 0;
-            p->setShaderSource(GpuProgram::VertexShader, "#version 420\n", c++);
+            p->setShaderSource(GpuProgram::VertexShader, "#version 400\n", c++);
             p->setShaderSource(GpuProgram::VertexShader, defs, c++);
             p->setShader(GpuProgram::VertexShader, myVertexShaderFilename, c++);
         }
         if(!myFragmentShaderFilename.empty())
         {
             int c = 0;
-            p->setShaderSource(GpuProgram::FragmentShader, "#version 420\n", c++);
+            p->setShaderSource(GpuProgram::FragmentShader, "#version 400\n", c++);
             if(!myColormapShaderFilename.empty())
             {
                 p->setShader(GpuProgram::FragmentShader, myColormapShaderFilename, c++);
@@ -121,7 +121,7 @@ bool Program::prepare(const DrawContext& dc)
         if(!myGeometryShaderFilename.empty())
         {
             int c = 0;
-            p->setShaderSource(GpuProgram::GeometryShader, "#version 420\n", c++);
+            p->setShaderSource(GpuProgram::GeometryShader, "#version 400\n", c++);
             p->setShaderSource(GpuProgram::GeometryShader, defs, c++);
             p->setShader(GpuProgram::GeometryShader, myGeometryShaderFilename, c++);
         }

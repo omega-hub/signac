@@ -254,6 +254,8 @@ void PointCloud::onDetached(SceneNode* sn)
 ///////////////////////////////////////////////////////////////////////////////
 void PointCloud::draw(const DrawContext& c)
 {
+    if(!getOwner()->isVisible()) return;
+
     // Initialize the texture and render target (if needed)
     if(myRenderTarget(c) == NULL)
     {
