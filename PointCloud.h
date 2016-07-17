@@ -40,7 +40,9 @@ public:
     Ref<Field> x;
     Ref<Field> y;
     Ref<Field> z;
-    Ref<Field> data[ProgramParams::MaxDataDimensions];
+    Ref<Field> data;
+    Ref<Field> size;
+    Ref<Field> filter;
 
     PointBatch* batch;
     LOD* LOD;
@@ -75,7 +77,6 @@ class PointCloud : public NodeComponent
 {
 public:
     typedef List< Ref<PointCloud> > List;
-    static const int MaxDataDimensions = 4;
 
 public:
     PointCloud() : NodeComponent()
@@ -89,11 +90,15 @@ public:
 
     bool setOptions(const String& options);
     bool setDimensions(Dimension* x, Dimension* y, Dimension* z);
-    void setData(int index, Dimension* fi) { myData[index] = fi; refreshFields();  }
+    void setData(Dimension* fi) { myData = fi; refreshFields();  }
+    void setSize(Dimension* fi) { mySize = fi; refreshFields(); }
+    void setFilter(Dimension* fi) { myFilter = fi; refreshFields(); }
     Dimension* getX() { return myX; }
     Dimension* getY() { return myY; }
     Dimension* getZ() { return myZ; }
-    Dimension* getData(int index) { return myData[index]; }
+    Dimension* getData() { return myData; }
+    Dimension* getSize() { return mySize; }
+    Dimension* getFilter() { return myFilter; }
 
     Dataset* getDataset() { return myDataset; }
     virtual void update(const UpdateContext& ctx);
@@ -119,7 +124,9 @@ private:
     Ref<Dimension> myX;
     Ref<Dimension> myY;
     Ref<Dimension> myZ;
-    Ref<Dimension> myData[MaxDataDimensions];
+    Ref<Dimension> myData;
+    Ref<Dimension> mySize;
+    Ref<Dimension> myFilter;
     Ref<Program> myProgram;
     
     size_t myPointsPerBatch;

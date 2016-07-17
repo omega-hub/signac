@@ -169,7 +169,7 @@ public:
 
     const String& getName() { return myName; }
 
-    Dimension* addDimension(const String& name, Dimension::Type type);
+    Dimension* addDimension(const String& name, Dimension::Type type, int index, const String& label);
     Field* addField(Dimension* dimension, const Domain& domain);
     Field* findField(Dimension* dimension, const Domain& domain);
     Field* getOrCreateField(Dimension* dimension, const Domain& domain);
@@ -191,5 +191,6 @@ private:
     String myFilename;
     Loader* myLoader;
     String myName;
+    size_t myNumRecords;
 };
 #endif

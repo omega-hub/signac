@@ -4,18 +4,8 @@
 ProgramParams::ProgramParams():
     pointScale(0.001)
 {
-    for(int i = 0; i < MaxDataDimensions; i++)
-    {
-        dataMin[i] = -numeric_limits<float>::max();
-        dataMax[i] = numeric_limits<float>::max();
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void ProgramParams::dataFilter(int index, float dmin, float dmax)
-{
-    dataMin[index] = dmin;
-    dataMax[index] = dmax;
+    filterMin = -numeric_limits<float>::max();
+    filterMax = numeric_limits<float>::max();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -80,11 +70,8 @@ bool Program::prepare(const DrawContext& dc)
 
         myPointScale(dc) = p->addUniform("pointScale");
 
-        for(int i = 0; i < ProgramParams::MaxDataDimensions; i++)
-        {
-            myDataBounds[i](dc) = p->addUniform(ostr("d%1%Bounds", %i));
-            myDataFilter[i](dc) = p->addUniform(ostr("d%1%Filter", %i));
-        }
+        myDataBounds(dc) = p->addUniform("dataBounds");
+        myFilterBounds(dc) = p->addUniform("filterBounds");
 
         myProgram(dc) = p;
     }
@@ -137,10 +124,7 @@ bool Program::prepare(const DrawContext& dc)
 
     // Set other program parameters
     myPointScale(dc)->set(myParams->pointScale);
-    for(int i = 0; i < ProgramParams::MaxDataDimensions; i++)
-    {
-        myDataFilter[i](dc)->set(myParams->dataMin[i], myParams->dataMax[i]);
-    }
+    myFilterBounds(dc)->set(myParams->filterMin, myParams->filterMax);
 
 
     return true;

@@ -3,6 +3,13 @@
 #include "Loader.h"
 #include "omega/glheaders.h"
 
+#define VA_X 0
+#define VA_Y 1
+#define VA_Z 2
+#define VA_DATA 3
+#define VA_SIZE 4
+#define VA_FILTER 5
+
 ///////////////////////////////////////////////////////////////////////////////
 bool LOD::parse(const String& options, Vector<LOD>* lodlevels, size_t* pointsPerBatch)
 {
@@ -61,12 +68,15 @@ void PointBatch::refreshFields()
         bd->x = ds->getOrCreateField(myOwner->getX(), d);
         bd->y = ds->getOrCreateField(myOwner->getY(), d);
         bd->z = ds->getOrCreateField(myOwner->getZ(), d);
-        for(int i = 0; i < PointCloud::MaxDataDimensions; i++)
-        {
-            Dimension* dim = myOwner->getData(i);
-            if(dim != NULL) bd->data[i] = ds->getOrCreateField(dim, d);
-            else bd->data[i] = NULL;
-        }
+
+        Dimension* dim;
+        
+        dim = myOwner->getData();
+        bd->data = dim != NULL ? ds->getOrCreateField(dim, d) : NULL;
+        dim = myOwner->getFilter();
+        bd->filter = dim != NULL ? ds->getOrCreateField(dim, d) : NULL;
+        dim = myOwner->getSize();
+        bd->size = dim != NULL ? ds->getOrCreateField(dim, d) : NULL;
     }
 }
 
@@ -81,10 +91,12 @@ void PointBatch::draw(const DrawContext& dc)
     if(bd->drawCall(dc) == NULL)
     {
         bd->va(dc) = dc.gpuContext->createVertexArray();
-        bd->va(dc)->setAttributeBinding(0, 0, "x");
-        bd->va(dc)->setAttributeBinding(1, 0, "y");
-        bd->va(dc)->setAttributeBinding(2, 0, "z");
-        bd->va(dc)->setAttributeBinding(3, 0, "data0");
+        bd->va(dc)->setAttributeBinding(VA_X, 0, "x");
+        bd->va(dc)->setAttributeBinding(VA_Y, 0, "y");
+        bd->va(dc)->setAttributeBinding(VA_Z, 0, "z");
+        bd->va(dc)->setAttributeBinding(VA_DATA, 0, "data");
+        bd->va(dc)->setAttributeBinding(VA_SIZE, 0, "size");
+        bd->va(dc)->setAttributeBinding(VA_FILTER, 0, "filter");
 
         bd->drawCall(dc) = new GpuDrawCall(p->getGpuProgram(dc));
         bd->drawCall(dc)->setVertexArray(bd->va(dc));
@@ -110,32 +122,62 @@ void PointBatch::draw(const DrawContext& dc)
 
     bool readyToDraw = xgpubuf != NULL && ygpubuf != NULL && zgpubuf != NULL;
 
-    bool hasData[] = { false, false, false, false };
-    GpuBuffer* databuf[] = { NULL, NULL, NULL, NULL };
-    for(int i = 0; i < 4; i++)
+    bool hasData = false;
+    bool hasSize = false;
+    bool hasFilter = false;
+
+    GpuBuffer* databuf = NULL;
+    GpuBuffer* sizebuf = NULL;
+    GpuBuffer* filterbuf = NULL;
+    
+    // Data field
+    Field* fd = bd->data;
+    if(fd != NULL)
     {
-        Field* f = bd->data[i];
-        if(f != NULL)
-        {
-            hasData[i] = true;
-            databuf[i] = f->getGpuBuffer(dc);
-            readyToDraw &= (databuf[i] != NULL);
-        }
+        hasData = true;
+        databuf = fd->getGpuBuffer(dc);
+        readyToDraw &= (databuf != NULL);
+    }
+
+    // Size field
+    Field* fs = bd->size;
+    if(fs != NULL)
+    {
+        hasSize = true;
+        sizebuf = fs->getGpuBuffer(dc);
+        readyToDraw &= (sizebuf != NULL);
+    }
+
+    // Filter field
+    Field* ff = bd->filter;
+    if(ff != NULL)
+    {
+        hasFilter = true;
+        filterbuf = ff->getGpuBuffer(dc);
+        readyToDraw &= (filterbuf != NULL);
     }
 
     if(readyToDraw)
     {
-        bd->va(dc)->setBuffer(0, xgpubuf);
-        bd->va(dc)->setBuffer(1, ygpubuf);
-        bd->va(dc)->setBuffer(2, zgpubuf);
-        for(int i = 0; i < 4; i++)
+        bd->va(dc)->setBuffer(VA_X, xgpubuf);
+        bd->va(dc)->setBuffer(VA_Y, ygpubuf);
+        bd->va(dc)->setBuffer(VA_Z, zgpubuf);
+
+        if(hasData) 
         {
-            if(hasData[i]) 
-            {
-                bd->va(dc)->setBuffer(3 + i, databuf[i]);
-                Dimension* dim = bd->data[i]->getDimension();
-                p->getDataBounds(0, dc)->set(dim->floatRangeMin, dim->floatRangeMax);
-            }
+            bd->va(dc)->setBuffer(VA_DATA, databuf);
+            Dimension* dim = bd->data->getDimension();
+            p->getDataBounds(dc)->set(dim->floatRangeMin, dim->floatRangeMax);
+        }
+        if(hasSize)
+        {
+            bd->va(dc)->setBuffer(VA_SIZE, sizebuf);
+        }
+        if(hasFilter)
+        {
+            bd->va(dc)->setBuffer(VA_FILTER, filterbuf);
+            Dimension* dim = bd->filter->getDimension();
+            p->getFilterBounds(dc)->set(dim->floatRangeMin, dim->floatRangeMax);
         }
 
         // Set ranges

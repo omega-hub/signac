@@ -35,7 +35,8 @@ Field::Field(Dimension* info, const Domain& dom):
 ///////////////////////////////////////////////////////////////////////////////
 Dataset::Dataset(const String& name):
     myLoader(NULL),
-    myName(name)
+    myName(name),
+    myNumRecords(0)
 {
 
 }
@@ -43,17 +44,18 @@ Dataset::Dataset(const String& name):
 ///////////////////////////////////////////////////////////////////////////////
 size_t Dataset::getNumRecords()
 { 
-    return myLoader->getNumRecords();
+    if(myNumRecords == 0) myNumRecords = myLoader->getNumRecords(this);
+    return myNumRecords;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-Dimension* Dataset::addDimension(const String& name, Dimension::Type type)
+Dimension* Dataset::addDimension(const String& name, Dimension::Type type, int index, const String& label)
 {
-    unsigned int index = (unsigned int)myDimensions.size();
+    //unsigned int index = (unsigned int)myDimensions.size();
 
     Dimension* fi = new Dimension();
     fi->dataset = this;
-    fi->label = name;
+    fi->label = label;
     fi->id = name;
     fi->index = index;
     fi->type = type;

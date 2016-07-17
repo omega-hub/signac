@@ -15,8 +15,7 @@ public:
 
     virtual void open(const String& source);
     virtual void load(Field* f);
-    virtual size_t getNumRecords();
-    virtual int getDimensions();
+    virtual size_t getNumRecords(Dataset* d);
     virtual bool getBounds(const Domain& d, float* bounds);
 
     //virtual bool load(BatchDrawable* batch, const String& filename) = 0;

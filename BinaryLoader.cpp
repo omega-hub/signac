@@ -295,7 +295,7 @@ void BinaryLoader::load(Field* f)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-size_t BinaryLoader::getNumRecords()
+size_t BinaryLoader::getNumRecords(Dataset* d)
 {
     if(myNumRecords != 0) return myNumRecords;
 
@@ -320,12 +320,6 @@ size_t BinaryLoader::getNumRecords()
 
     myNumRecords = numRecords;
     return numRecords;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-int BinaryLoader::getDimensions()
-{ 
-    return 7; 
 }
 
 ///////////////////////////////////////////////////////////////////////////////

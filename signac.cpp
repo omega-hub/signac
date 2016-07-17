@@ -5,6 +5,8 @@
 #include "CsvLoader.h"
 #include "BinaryLoader.h"
 #include "Dataset.h"
+#include "Hdf5Loader.h"
+#include "FireLoader.h"
 #include "Scatterplot.h"
 #include "PointCloud.h"
 
@@ -134,7 +136,13 @@ BOOST_PYTHON_MODULE(signac)
 
     PYAPI_REF_CLASS_WITH_CTOR(CsvLoader, Loader)
         ;
-        
+
+    PYAPI_REF_CLASS_WITH_CTOR(Hdf5Loader, Loader)
+        ;
+
+    PYAPI_REF_CLASS_WITH_CTOR(FireLoader, Hdf5Loader)
+        ;
+
     PYAPI_REF_CLASS_WITH_CTOR(BinaryLoader, Loader)
         ;
 
@@ -185,7 +193,8 @@ BOOST_PYTHON_MODULE(signac)
 
     PYAPI_REF_BASE_CLASS(ProgramParams)
         PYAPI_PROPERTY(ProgramParams, pointScale)
-        PYAPI_METHOD(ProgramParams, dataFilter)
+        PYAPI_PROPERTY(ProgramParams, filterMin)
+        PYAPI_PROPERTY(ProgramParams, filterMax)
         ;
 
     PYAPI_REF_BASE_CLASS(Program)

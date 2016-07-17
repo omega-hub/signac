@@ -10,16 +10,11 @@ using namespace omega;
 class ProgramParams : public ReferenceType
 {
 public:
-    static const int MaxDataDimensions = 4;
-public:
     ProgramParams();
 
-    void dataFilter(int index, float dmin, float dmax);
-
-
     float pointScale;
-    float dataMax[MaxDataDimensions];
-    float dataMin[MaxDataDimensions];
+    float filterMax;
+    float filterMin;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -41,8 +36,8 @@ public:
     Uniform* getMVPMatrix(const DrawContext& c) { return myMVPMatrix(c); }
     Uniform* getMVMatrix(const DrawContext& c) { return myMVMatrix(c); }
     Uniform* getPMatrix(const DrawContext& c) { return myPMatrix(c); }
-    Uniform* getDataBounds(int index, const DrawContext& c) { return myDataBounds[index](c); }
-    Uniform* getDataFilter(int index, const DrawContext& c) { return myDataFilter[index](c); }
+    Uniform* getDataBounds(const DrawContext& c) { return myDataBounds(c); }
+    Uniform* getFilterBounds(const DrawContext& c) { return myFilterBounds(c); }
 
     ProgramParams* getParams() { return myParams; }
     void setParams(ProgramParams* p) { oassert(p);  myParams = p; }
@@ -67,8 +62,8 @@ private:
     GpuRef<Uniform> myPMatrix;
     GpuRef<Uniform> myPointScale;
     GpuRef<Uniform> mySliceBounds;
-    GpuRef<Uniform> myDataBounds[ProgramParams::MaxDataDimensions];
-    GpuRef<Uniform> myDataFilter[ProgramParams::MaxDataDimensions];
+    GpuRef<Uniform> myDataBounds;
+    GpuRef<Uniform> myFilterBounds;
 
     // Program Parameters & Uniforms
     Ref<ProgramParams> myParams;
