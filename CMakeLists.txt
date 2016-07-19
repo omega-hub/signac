@@ -2,8 +2,13 @@ request_dependency(porthole)
 request_dependency(hdf5)
 module_version(2.0)
 
-find_package(HDF5 REQUIRED COMPONENTS C HL)
-include_directories(${HDF5_INCLUDE_DIRS})
+include_directories(${CMAKE_BINARY_DIR}/3rdparty/hdf5/install/include)
+if(OMEGA_OS_WIN)
+    set(${HDF5_C_LIBRARIES} 
+        ${CMAKE_BINARY_DIR}/3rdparty/hdf5/install/lib/hdf5.lib
+        ${CMAKE_BINARY_DIR}/3rdparty/hdf5/install/lib/hdf5_hl.lib)
+else()
+endif()
 add_library(signac MODULE 
     signac.cpp
     signac.h
@@ -25,6 +30,6 @@ add_library(signac MODULE
     Scatterplot.cpp
     Scatterplot.h)
 
-target_link_libraries(signac omega ${HDF5_C_LIBRARIES} ${HDF5_HL_LIBRARIES})
+target_link_libraries(signac omega ${HDF5_C_LIBRARIES})
 
 declare_native_module(signac)
