@@ -4,7 +4,7 @@ module_version(2.0)
 
 include_directories(${CMAKE_BINARY_DIR}/3rdparty/hdf5/install/include)
 if(OMEGA_OS_WIN)
-    set(${HDF5_C_LIBRARIES} 
+    set(HDF5_C_LIBRARIES
         ${CMAKE_BINARY_DIR}/3rdparty/hdf5/install/lib/hdf5.lib
         ${CMAKE_BINARY_DIR}/3rdparty/hdf5/install/lib/hdf5_hl.lib)
 else()
