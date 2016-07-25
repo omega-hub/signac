@@ -52,6 +52,7 @@ public:
 
     GpuRef<GpuDrawCall> drawCall;
     GpuRef<GpuArray> va;
+    GpuRef<Texture> colormap;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -86,19 +87,27 @@ public:
         //myBBox.setExtents(Vector3f(minf, minf, minf), Vector3f(maxf, maxf, maxf));
         myMinDataBounds = Vector4f(maxf, maxf, maxf, maxf);
         myMaxDataBounds = Vector4f(minf, minf, minf, minf);
+        myProgramParams = new ProgramParams();
     }
 
     bool setOptions(const String& options);
     bool setDimensions(Dimension* x, Dimension* y, Dimension* z);
-    void setData(Dimension* fi) { myData = fi; refreshFields();  }
-    void setSize(Dimension* fi) { mySize = fi; refreshFields(); }
-    void setFilter(Dimension* fi) { myFilter = fi; refreshFields(); }
+    void setData(Dimension* fi);
+    void setSize(Dimension* fi);
+    void setFilter(Dimension* fi);
     Dimension* getX() { return myX; }
     Dimension* getY() { return myY; }
     Dimension* getZ() { return myZ; }
     Dimension* getData() { return myData; }
     Dimension* getSize() { return mySize; }
     Dimension* getFilter() { return myFilter; }
+
+    void setPointScale(float scale);
+    void normalizeFilterBounds(bool enabled);
+    void setFilterBounds(float fmin, float fmax);
+
+    void setColormap(PixelData* colormap);
+    PixelData* getColormap() { return myColormap; }
 
     Dataset* getDataset() { return myDataset; }
     virtual void update(const UpdateContext& ctx);
@@ -128,7 +137,9 @@ private:
     Ref<Dimension> mySize;
     Ref<Dimension> myFilter;
     Ref<Program> myProgram;
-    
+    Ref<ProgramParams> myProgramParams;
+    Ref<PixelData> myColormap;
+
     size_t myPointsPerBatch;
 
     Vector<LOD> myLODLevels;

@@ -109,6 +109,16 @@ void PointBatch::draw(const DrawContext& dc)
         //myUColor(dc) = myDrawCall(dc)->addUniform("color");
     }
 
+    if(myOwner->getColormap() != NULL)
+    {
+        Texture* cm = myOwner->getColormap()->getTexture(dc);
+        if(bd->colormap(dc) != cm)
+        {
+            bd->drawCall(dc)->clearTextures();
+            bd->drawCall(dc)->addTexture("colormap", cm);
+        }
+    }
+
     Field* fx = bd->x;
     Field* fy = bd->y;
     Field* fz = bd->z;
@@ -177,7 +187,16 @@ void PointBatch::draw(const DrawContext& dc)
         {
             bd->va(dc)->setBuffer(VA_FILTER, filterbuf);
             Dimension* dim = bd->filter->getDimension();
-            p->getFilterBounds(dc)->set(dim->floatRangeMin, dim->floatRangeMax);
+            ProgramParams* pp = myOwner->getProgram()->getParams();
+            float fmin = pp->filterMin;
+            float fmax = pp->filterMax;
+            if(pp->normalizedFilterBounds)
+            {
+                float l = dim->floatRangeMax - dim->floatRangeMin;
+                fmin = fmin * l + dim->floatRangeMin;
+                fmax = fmax * l + dim->floatRangeMin;
+            }
+            p->getFilterBounds(dc)->set(fmin, fmax);
         }
 
         // Set ranges
@@ -276,9 +295,37 @@ bool PointCloud::setDimensions(Dimension* x, Dimension* y, Dimension* z)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void PointCloud::setData(Dimension* fi)
+{ 
+    myData = fi; 
+    refreshFields(); 
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloud::setSize(Dimension* fi) 
+{ 
+    mySize = fi; 
+    refreshFields();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloud::setFilter(Dimension* fi) 
+{ 
+    myFilter = fi; 
+    refreshFields(); 
+}
+
+///////////////////////////////////////////////////////////////////////////////
 void PointCloud::refreshFields()
 {
     foreach(PointBatch* b, myBatches) b->refreshFields();
+    if(myProgram != NULL)
+    {
+        if(mySize != NULL) myProgram->define("SIZE_MODE", "1");
+        else myProgram->define("SIZE_MODE", "0");
+        if(myFilter != NULL) myProgram->define("FILTER_MODE", "1");
+        else myProgram->define("FILTER_MODE", "0");
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -335,12 +382,37 @@ void PointCloud::draw(const DrawContext& c)
 void PointCloud::setProgram(Program* p)
 {
     myProgram = p;
+    myProgram->setParams(myProgramParams);
+    refreshFields();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void PointCloud::update(const UpdateContext& ctx)
 {
     SceneNode* sn = getOwner();
-
 }
 
+///////////////////////////////////////////////////////////////////////////////
+void PointCloud::setPointScale(float scale)
+{
+    myProgramParams->pointScale = scale;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloud::setFilterBounds(float fmin, float fmax)
+{
+    myProgramParams->filterMax = fmax;
+    myProgramParams->filterMin = fmin;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloud::normalizeFilterBounds(bool enabled)
+{
+    myProgramParams->normalizedFilterBounds = enabled;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloud::setColormap(PixelData* colormap)
+{
+    myColormap = colormap;
+}

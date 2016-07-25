@@ -15,6 +15,7 @@ public:
     float pointScale;
     float filterMax;
     float filterMin;
+    bool normalizedFilterBounds;
 };
 
 ///////////////////////////////////////////////////////////////////////////////

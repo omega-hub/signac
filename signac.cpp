@@ -15,6 +15,9 @@ using namespace omega;
 List<Plot*> plots;
 
 ///////////////////////////////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////////////////////////////////
 // Render pass for plots.
 class SignacRenderPass : public RenderPass
 {
@@ -187,14 +190,15 @@ BOOST_PYTHON_MODULE(signac)
         PYAPI_METHOD(PointCloud, setOptions)
         PYAPI_METHOD(PointCloud, setDimensions)
         PYAPI_METHOD(PointCloud, setData)
+        PYAPI_METHOD(PointCloud, setSize)
+        PYAPI_METHOD(PointCloud, setFilter)
+        PYAPI_METHOD(PointCloud, setFilterBounds)
+        PYAPI_METHOD(PointCloud, normalizeFilterBounds)
         PYAPI_METHOD(PointCloud, setProgram)
+        PYAPI_METHOD(PointCloud, setPointScale)
+        PYAPI_METHOD(PointCloud, setColormap)
+        PYAPI_REF_GETTER(PointCloud, getColormap)
         PYAPI_REF_GETTER(PointCloud, getProgram)
-        ;
-
-    PYAPI_REF_BASE_CLASS(ProgramParams)
-        PYAPI_PROPERTY(ProgramParams, pointScale)
-        PYAPI_PROPERTY(ProgramParams, filterMin)
-        PYAPI_PROPERTY(ProgramParams, filterMax)
         ;
 
     PYAPI_REF_BASE_CLASS(Program)

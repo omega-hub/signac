@@ -76,7 +76,7 @@ public:
             int p2 = H5Sget_select_npoints(mspace_id);
             oassert(p1 == p2);
 
-            ofmsg("reading %1% - offs %2%", %dsetname %sstart);
+            oflog(Debug, "reading %1% - offs %2%", %dsetname %sstart);
             float* fielddata = (float*)malloc(p1 * sizeof(float));
             status = H5Dread(dataset_id, H5T_IEEE_F32LE, mspace_id, dspace_id, H5P_DEFAULT, fielddata);
             oassert(status != -1);

@@ -6,6 +6,7 @@ ProgramParams::ProgramParams():
 {
     filterMin = -numeric_limits<float>::max();
     filterMax = numeric_limits<float>::max();
+    normalizedFilterBounds = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
