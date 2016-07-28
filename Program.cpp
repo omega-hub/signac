@@ -70,6 +70,7 @@ bool Program::prepare(const DrawContext& dc)
         myPMatrix(dc) = p->addUniform("projection");
 
         myPointScale(dc) = p->addUniform("pointScale");
+        myIsLog(dc) = p->addUniform("isLog");
 
         myDataBounds(dc) = p->addUniform("dataBounds");
         myFilterBounds(dc) = p->addUniform("filterBounds");
@@ -126,7 +127,8 @@ bool Program::prepare(const DrawContext& dc)
     // Set other program parameters
     myPointScale(dc)->set(myParams->pointScale);
     myFilterBounds(dc)->set(myParams->filterMin, myParams->filterMax);
-
+    myIsLog(dc)->set(myParams->isLog);
+    myDataBounds(dc)->set(myParams->filterMin, myParams->filterMax);
 
     return true;
 }

@@ -16,6 +16,7 @@ public:
     float filterMax;
     float filterMin;
     bool normalizedFilterBounds;
+    bool isLog;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -65,6 +66,8 @@ private:
     GpuRef<Uniform> mySliceBounds;
     GpuRef<Uniform> myDataBounds;
     GpuRef<Uniform> myFilterBounds;
+    GpuRef<Uniform> myIsLog;
+
 
     // Program Parameters & Uniforms
     Ref<ProgramParams> myParams;
