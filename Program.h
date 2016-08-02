@@ -13,10 +13,11 @@ public:
     ProgramParams();
 
     float pointScale;
+    Vector3f focusPosition;
     float filterMax;
     float filterMin;
     bool normalizedFilterBounds;
-    bool isLog;
+    Color color;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -30,9 +31,9 @@ public:
     void setVertexShader(const String& filename);
     void setFragmentShader(const String& filename);
     void setGeometryShader(const String& filename);
-    void setColormapShader(const String& filename);
 
     bool prepare(const DrawContext& context);
+    void setParams(const DrawContext& context, ProgramParams* p);
     GpuProgram* getGpuProgram(const DrawContext& context);
 
     Uniform* getMVPMatrix(const DrawContext& c) { return myMVPMatrix(c); }
@@ -41,8 +42,6 @@ public:
     Uniform* getDataBounds(const DrawContext& c) { return myDataBounds(c); }
     Uniform* getFilterBounds(const DrawContext& c) { return myFilterBounds(c); }
 
-    ProgramParams* getParams() { return myParams; }
-    void setParams(ProgramParams* p) { oassert(p);  myParams = p; }
 
     void reload() { myDirty = true; }
 
@@ -54,19 +53,20 @@ private:
     String myVertexShaderFilename;
     String myFragmentShaderFilename;
     String myGeometryShaderFilename;
-    String myColormapShaderFilename;
 
     Dictionary<String, String> myDefines;
 
     GpuRef<GpuProgram> myProgram;
+    GpuRef<Uniform> myVMatrix;
     GpuRef<Uniform> myMVPMatrix;
     GpuRef<Uniform> myMVMatrix;
     GpuRef<Uniform> myPMatrix;
     GpuRef<Uniform> myPointScale;
+    GpuRef<Uniform> myFocusPosition;
     GpuRef<Uniform> mySliceBounds;
     GpuRef<Uniform> myDataBounds;
     GpuRef<Uniform> myFilterBounds;
-    GpuRef<Uniform> myIsLog;
+    GpuRef<Uniform> myColor;
 
 
     // Program Parameters & Uniforms

@@ -47,7 +47,7 @@ public:
         if(context.task == DrawContext::SceneDrawTask)
         {
             client->getRenderer()->beginDraw3D(context);
-            foreach(PointCloud* p, Signac::instance->getPointClouds())
+            foreach(PointCloudView* p, Signac::instance->myPointCloudViews)
             {
                 p->draw(context);
             }
@@ -80,17 +80,17 @@ void Signac::initializeRenderer(Renderer* r)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void Signac::addPointCloud(PointCloud* pc)
+void Signac::addPointCloudView(PointCloudView* pc)
 {
     AutoLock al(myLock);
-    myPointClouds.push_back(pc);
+    myPointCloudViews.push_back(pc);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void Signac::removePointCloud(PointCloud* pc)
+void Signac::removePointCloudView(PointCloudView* pc)
 {
     AutoLock al(myLock);
-    myPointClouds.remove(pc);
+    myPointCloudViews.remove(pc);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -186,6 +186,16 @@ BOOST_PYTHON_MODULE(signac)
         PYAPI_REF_GETTER(Plot, getBrush)
         ;
 
+    PYAPI_REF_BASE_CLASS_WITH_CTOR(PointCloudView)
+        PYAPI_METHOD(PointCloudView, addPointCloud)
+        PYAPI_METHOD(PointCloudView, removePointCloud)
+        PYAPI_METHOD(PointCloudView, resize)
+        PYAPI_METHOD(PointCloudView, enableColormapper)
+        PYAPI_METHOD(PointCloudView, setColormapper)
+        PYAPI_METHOD(PointCloudView, setColormap)
+        PYAPI_REF_GETTER(PointCloudView, getOutput)
+        ;
+
     PYAPI_REF_CLASS_WITH_CTOR(PointCloud, NodeComponent)
         PYAPI_METHOD(PointCloud, setOptions)
         PYAPI_METHOD(PointCloud, setDimensions)
@@ -197,6 +207,8 @@ BOOST_PYTHON_MODULE(signac)
         PYAPI_METHOD(PointCloud, setProgram)
         PYAPI_METHOD(PointCloud, setPointScale)
         PYAPI_METHOD(PointCloud, setColormap)
+        PYAPI_METHOD(PointCloud, setColor)
+        PYAPI_METHOD(PointCloud, setFocusPosition)
         PYAPI_REF_GETTER(PointCloud, getColormap)
         PYAPI_REF_GETTER(PointCloud, getProgram)
         ;
@@ -205,9 +217,6 @@ BOOST_PYTHON_MODULE(signac)
         PYAPI_METHOD(Program, setVertexShader)
         PYAPI_METHOD(Program, setFragmentShader)
         PYAPI_METHOD(Program, setGeometryShader)
-        PYAPI_METHOD(Program, setColormapShader)
-        PYAPI_METHOD(Program, setParams)
-        PYAPI_REF_GETTER(Program, getParams)
         PYAPI_METHOD(Program, reload)
         PYAPI_METHOD(Program, define)
         PYAPI_METHOD(Program, clearDefines)

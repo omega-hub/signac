@@ -101,13 +101,9 @@ void PointBatch::draw(const DrawContext& dc)
         bd->drawCall(dc) = new GpuDrawCall(p->getGpuProgram(dc));
         bd->drawCall(dc)->setVertexArray(bd->va(dc));
         bd->drawCall(dc)->primType = GpuDrawCall::PrimPoints;
-
-        //myUMinX(dc) = myDrawCall(dc)->addUniform("xmin");
-        //myUMaxX(dc) = myDrawCall(dc)->addUniform("xmax");
-        //myUMinY(dc) = myDrawCall(dc)->addUniform("ymin");
-        //myUMaxY(dc) = myDrawCall(dc)->addUniform("ymax");
-        //myUColor(dc) = myDrawCall(dc)->addUniform("color");
     }
+
+    bd->drawCall(dc)->setProgram(p->getGpuProgram(dc));
 
     if(myOwner->getColormap() != NULL)
     {
@@ -187,7 +183,7 @@ void PointBatch::draw(const DrawContext& dc)
         {
             bd->va(dc)->setBuffer(VA_FILTER, filterbuf);
             Dimension* dim = bd->filter->getDimension();
-            ProgramParams* pp = myOwner->getProgram()->getParams();
+            ProgramParams* pp = myOwner->myProgramParams;
             float fmin = pp->filterMin;
             float fmax = pp->filterMax;
             if(pp->normalizedFilterBounds)
@@ -199,16 +195,6 @@ void PointBatch::draw(const DrawContext& dc)
             p->getFilterBounds(dc)->set(fmin, fmax);
         }
 
-        // Set ranges
-        //Dimension* dmx = fx->getDimension();
-        //Dimension* dmy = fy->getDimension();
-        //Dimension* dmy = fy->getDimension();
-
-        //myUMinX(dc)->set(dmx->floatRangeMin);
-        //myUMinY(dc)->set(dmy->floatRangeMin);
-        //myUMaxX(dc)->set(dmx->floatRangeMax);
-        //myUMaxY(dc)->set(dmy->floatRangeMax);
-
         Transform3 mvmat = dc.modelview * myOwner->getOwner()->getFullTransform();
 
         p->getMVMatrix(dc)->set(mvmat);
@@ -217,28 +203,10 @@ void PointBatch::draw(const DrawContext& dc)
         glEnable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_PROGRAM_POINT_SIZE);
-        //if(myBlend)
-        {
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-        }
-        //else
-        //{
-        //    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        //
-        //}
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
 
-        //if(myFilter != NULL && myFilter->getFilteredLength() != -1)
-        //{
-        //    myVA(dc)->setBuffer(2, myFilter->getIndexBuffer(dc));
-        //    myDrawCall(dc)->items = myFilter->getFilteredLength();
-        //    myDrawCall(dc)->run();
-        //}
-        //else
-        //{
         bd->drawCall(dc)->items = static_cast<uint>(l);
         bd->drawCall(dc)->run();
-        //}
-        oassert(!oglError);
     }
 }
 
@@ -329,60 +297,18 @@ void PointCloud::refreshFields()
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void PointCloud::onAttached(SceneNode* sn)
-{ 
-    Signac::instance->addPointCloud(this);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-void PointCloud::onDetached(SceneNode* sn)
-{
-    Signac::instance->removePointCloud(this);
-}
-
-///////////////////////////////////////////////////////////////////////////////
 void PointCloud::draw(const DrawContext& c)
 {
-    if(!getOwner()->isVisible()) return;
-
-    // Initialize the texture and render target (if needed)
-    if(myRenderTarget(c) == NULL)
-    {
-        myRenderOutput(c) = c.gpuContext->createTexture();
-        myRenderOutput(c)->initialize(
-            800, 600, 
-            Texture::TypeRectangle, 
-            Texture::ChannelRGBA, 
-            Texture::FormatFloat);
-        myRenderTarget(c) = c.gpuContext->createRenderTarget(RenderTarget::RenderToTexture);
-        myRenderTarget(c)->setTextureTarget(myRenderOutput(c));
-        /*
-        float vertices[] = { 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f };
-        myFullscreenQuad(c) = c.gpuContext->createVertexArray();
-        myFullscreenQuad(c)->addBuffer(0, GpuBuffer::VertexData, 8 * sizeof(float), vertices);
-        myFullscreenQuad(c)->addAttribute(0, 0, "vertex", GpuBuffer::Float, false, 2, 0, 0);
-        //myFullscreenDraw(c) = new GpuDrawCall(myMappingProgram->getGpuProgram(c));
-        myFullscreenDraw(c)->setVertexArray(myFullscreenQuad(c));
-        myFullscreenDraw(c)->items = 4;
-        myFullscreenDraw(c)->primType = GpuDrawCall::PrimTriangleStrip;*/
-    }
-
-    // Render the point cloud to the output texture.
-    //myRenderTarget(c)->bind();
-    //myRenderTarget(c)->clear();
+    if(getOwner() == NULL || !getOwner()->isVisible()) return;
+    myProgram->setParams(c, myProgramParams);
     // FOr now draw all batches no frustum culling
     foreach(PointBatch* b, myBatches) b->draw(c);
-    //myRenderTarget(c)->unbind();
-
-    // Render quad.
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void PointCloud::setProgram(Program* p)
 {
     myProgram = p;
-    myProgram->setParams(myProgramParams);
     refreshFields();
 }
 
@@ -412,7 +338,168 @@ void PointCloud::normalizeFilterBounds(bool enabled)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void PointCloud::setColor(const Color& c)
+{
+    myProgramParams->color = c;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloud::setFocusPosition(const Vector3f d)
+{
+    myProgramParams->focusPosition = d;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 void PointCloud::setColormap(PixelData* colormap)
 {
     myColormap = colormap;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+PointCloudView::PointCloudView():
+myWidth(800),
+myHeight(600),
+myColormapperEnabled(false)
+{
+    Signac::instance->addPointCloudView(this);
+    myOutput = new PixelData(PixelData::FormatRgba, myWidth, myHeight);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+PointCloudView::~PointCloudView()
+{
+    Signac::instance->removePointCloudView(this);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloudView::addPointCloud(PointCloud* pc)
+{
+    myPointClouds.push_back(pc);
+}
+///////////////////////////////////////////////////////////////////////////////
+void PointCloudView::removePointCloud(PointCloud*pc)
+{
+    myPointClouds.remove(pc);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloudView::setColormap(PixelData* colormap)
+{
+    myColormap = colormap;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloudView::setColormapper(Program* p)
+{
+    myMappingProgram = p;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloudView::draw(const DrawContext& c)
+{
+    // Initialize the texture and render target (if needed)
+    if(myChannelRT(c) == NULL)
+    {
+        myChannelTexture(c) = c.gpuContext->createTexture();
+        myChannelTexture(c)->initialize(
+            myWidth, myHeight,
+            Texture::Type2D,
+            Texture::ChannelRGBA,
+            Texture::FormatFloat);
+        myChannelRT(c) = c.gpuContext->createRenderTarget(RenderTarget::RenderToTexture);
+        myChannelRT(c)->setTextureTarget(myChannelTexture(c));
+
+        myOutputRT(c) = c.gpuContext->createRenderTarget(RenderTarget::RenderOffscreen);
+        myOutputRT(c)->setReadbackTarget(myOutput);
+
+        float vertices[] = {
+            // Pos      // Tex
+            -1.0f, -1.0f, 0.0f, 1.0f,
+            -1.0f, 1.0f, 0.0f, 0.0f,
+            1.0f, -1.0f, 1.0f, 1.0f,
+            1.0f, 1.0f, 1.0f, 0.0f
+        };
+        myQuad(c) = c.gpuContext->createVertexArray();
+        myQuad(c)->addBuffer(0, GpuBuffer::VertexData, 16 * sizeof(float), vertices);
+        myQuad(c)->addAttribute(0, 0, "vertex", GpuBuffer::Float, false, 4, 0, 0);
+
+        myChannelTextureDraw(c) = new GpuDrawCall();
+        myChannelTextureDraw(c)->setVertexArray(myQuad(c));
+        myChannelTextureDraw(c)->addTexture("channels", myChannelTexture(c));
+        myChannelTextureDraw(c)->addTexture("colormap");
+        myChannelTextureDraw(c)->primType = GpuDrawCall::PrimTriangleStrip;
+        myChannelTextureDraw(c)->items = 4;
+    }
+
+    if(myWidth != myChannelTexture(c)->getWidth() ||
+        myHeight != myChannelTexture(c)->getHeight())
+    {
+        myChannelTexture(c)->resize(myWidth, myHeight);
+    }
+
+    if(myColormapperEnabled)
+    {
+        if(myColormap != NULL)
+        {
+            Texture* cm = myColormap->getTexture(c);
+            if(myColormapTexture(c) != cm)
+            {
+                myChannelTextureDraw(c)->setTexture("colormap", cm);
+                myColormapTexture(c) = cm;
+            }
+        }
+        // Render the point cloud to the output texture.
+        myChannelRT(c)->bind();
+        myChannelRT(c)->clear();
+    }
+    else
+    {
+        // Render the point cloud to the output texture.
+        myOutputRT(c)->bind();
+        myOutputRT(c)->clear();
+    }
+    // FOr now draw all batches no frustum culling
+    foreach(PointCloud* pc, myPointClouds)
+    {
+        pc->draw(c);
+    }
+    if(myColormapperEnabled)
+    {
+        myChannelRT(c)->unbind();
+    }
+    else
+    {
+        myOutputRT(c)->unbind();
+        myOutputRT(c)->readback();
+    }
+    if(myColormapperEnabled && !myMappingProgram.isNull())
+    {
+        myChannelTextureDraw(c)->setProgram(myMappingProgram->getGpuProgram(c));
+        // Get channel bounds
+        float chmin = myPointClouds.front()->getData()->floatRangeMin;
+        float chmax = myPointClouds.front()->getData()->floatRangeMax;
+        foreach(PointCloud* pc, myPointClouds)
+        {
+            Dimension* d = pc->getData();
+            if(d != NULL)
+            {
+                chmin = min(chmin, (float)d->floatRangeMin);
+                chmax = max(chmax, (float)d->floatRangeMax);
+            }
+        }
+        myMappingProgram->getDataBounds(c)->set(chmin, chmax);
+        myOutputRT(c)->bind();
+        myOutputRT(c)->clear();
+        myChannelTextureDraw(c)->run();
+        myOutputRT(c)->unbind();
+        myOutputRT(c)->readback();
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloudView::resize(int width, int height)
+{
+    myWidth = width;
+    myHeight = height;
+    myOutput->resize(width, height);
 }

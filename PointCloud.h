@@ -76,6 +76,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 class PointCloud : public NodeComponent
 {
+    friend class PointBatch;
 public:
     typedef List< Ref<PointCloud> > List;
 
@@ -108,22 +109,20 @@ public:
 
     void setColormap(PixelData* colormap);
     PixelData* getColormap() { return myColormap; }
+    void setColor(const Color& c);
+    void setFocusPosition(const Vector3f d);
 
     Dataset* getDataset() { return myDataset; }
     virtual void update(const UpdateContext& ctx);
     virtual const AlignedBox3* getBoundingBox() { return &myBBox; }
     virtual bool hasBoundingBox() { return true; }
-    virtual void onAttached(SceneNode*);
-    virtual void onDetached(SceneNode*);
 
     void draw(const DrawContext& c);
 
     void setProgram(Program* p);
     Program* getProgram() { return myProgram; }
 
-    void setMappingProgram(Program* p);
-    Program* getMappingProgram() { return myMappingProgram; }
-
+    bool isVisible() { return getOwner() != NULL && getOwner()->isVisible(); }
 
 private:
     void refreshFields();
@@ -148,13 +147,50 @@ private:
     AlignedBox3 myBBox;
     Vector4f myMinDataBounds;
     Vector4f myMaxDataBounds;
+};
+
+///////////////////////////////////////////////////////////////////////////////
+class PointCloudView : public ReferenceType
+{
+public:
+    PointCloudView();
+    ~PointCloudView();
+
+    void addPointCloud(PointCloud* pc);
+    void removePointCloud(PointCloud* pc);
+    void draw(const DrawContext& dc);
+
+    void enableColormapper(bool enabled) { myColormapperEnabled = enabled; }
+    void setColormapper(Program* p);
+    Program* getMappingProgram() { return myMappingProgram; }
+    void setColormap(PixelData* colormap);
+    PixelData* getColormap() { return myColormap; }
+
+    void resize(int width, int height);
+
+    PixelData* getOutput() { return myOutput; }
+
+private:
+    PointCloud::List myPointClouds;
+
+    Ref<PixelData> myOutput;
+    bool myColormapperEnabled;
+    Ref<PixelData> myColormap;
+    GpuRef<Texture> myColormapTexture;
 
     // Image render
-    GpuRef<RenderTarget> myRenderTarget;
-    GpuRef<Texture> myRenderOutput;
-    GpuRef<GpuArray> myFullscreenQuad;
-    GpuRef<GpuDrawCall> myFullscreenDraw;
+    GpuRef<RenderTarget> myChannelRT;
+    GpuRef<RenderTarget> myOutputRT;
+    GpuRef<Texture> myChannelTexture;
+    GpuRef<GpuArray> myQuad;
+    GpuRef<GpuDrawCall> myChannelTextureDraw;
     Ref<Program> myMappingProgram;
+    int myWidth;
+    int myHeight;
+
+    float myChannelMin;
+    float myChannelMax;
+
 };
 
 #endif

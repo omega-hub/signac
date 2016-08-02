@@ -2,7 +2,7 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 ProgramParams::ProgramParams():
-    pointScale(0.001)
+    pointScale(0.001f)
 {
     filterMin = -numeric_limits<float>::max();
     filterMax = numeric_limits<float>::max();
@@ -12,7 +12,6 @@ ProgramParams::ProgramParams():
 ///////////////////////////////////////////////////////////////////////////////
 Program::Program(const String& name) : myName(name)
 {
-    myParams = new ProgramParams();
     myDirty = false;
 }
 
@@ -38,13 +37,6 @@ void Program::setGeometryShader(const String& filename)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void Program::setColormapShader(const String& filename)
-{
-    myColormapShaderFilename = filename;
-    myDirty = true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 void Program::define(const String& name, const String& value)
 {
     myDefines[name] = value;
@@ -65,15 +57,18 @@ bool Program::prepare(const DrawContext& dc)
     {
         GpuProgram* p = dc.gpuContext->createProgram();
 
+        myVMatrix(dc) = p->addUniform("view");
         myMVPMatrix(dc) = p->addUniform("modelViewProjection");
         myMVMatrix(dc) = p->addUniform("modelView");
         myPMatrix(dc) = p->addUniform("projection");
 
         myPointScale(dc) = p->addUniform("pointScale");
-        myIsLog(dc) = p->addUniform("isLog");
+        myFocusPosition(dc) = p->addUniform("focusPosition");
 
         myDataBounds(dc) = p->addUniform("dataBounds");
         myFilterBounds(dc) = p->addUniform("filterBounds");
+
+        myColor(dc) = p->addUniform("color");
 
         myProgram(dc) = p;
     }
@@ -100,10 +95,6 @@ bool Program::prepare(const DrawContext& dc)
         {
             int c = 0;
             p->setShaderSource(GpuProgram::FragmentShader, "#version 400\n", c++);
-            if(!myColormapShaderFilename.empty())
-            {
-                p->setShader(GpuProgram::FragmentShader, myColormapShaderFilename, c++);
-            }
             p->setShaderSource(GpuProgram::FragmentShader, defs, c++);
             p->setShader(GpuProgram::FragmentShader, myFragmentShaderFilename, c++);
         }
@@ -120,17 +111,24 @@ bool Program::prepare(const DrawContext& dc)
         myDirty = false;
     }
 
+    myVMatrix(dc)->set(dc.modelview);
     myMVPMatrix(dc)->set(dc.mvp);
     myMVMatrix(dc)->set(dc.modelview);
     myPMatrix(dc)->set(dc.projection);
-
-    // Set other program parameters
-    myPointScale(dc)->set(myParams->pointScale);
-    myFilterBounds(dc)->set(myParams->filterMin, myParams->filterMax);
-    myIsLog(dc)->set(myParams->isLog);
-    myDataBounds(dc)->set(myParams->filterMin, myParams->filterMax);
+    
 
     return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void Program::setParams(const DrawContext& dc, ProgramParams* p)
+{
+    oassert(p);  
+    myPointScale(dc)->set(p->pointScale);
+    myFilterBounds(dc)->set(p->filterMin, p->filterMax);
+    float* c = p->color.data();
+    myColor(dc)->set(c[0], c[1], c[2], c[3]);
+    myFocusPosition(dc)->set(p->focusPosition[0], p->focusPosition[1], p->focusPosition[2]);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
