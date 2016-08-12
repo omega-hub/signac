@@ -41,6 +41,9 @@ public:
     Ref<Field> y;
     Ref<Field> z;
     Ref<Field> data;
+    Ref<Field> datax;
+    Ref<Field> datay;
+    Ref<Field> dataz;
     Ref<Field> size;
     Ref<Field> filter;
 
@@ -63,7 +66,8 @@ public:
 
     void addDrawable(LOD* lod, size_t start, size_t length);
 
-    const AlignedBox3& getBoundingBox() { return myBBox; }
+    bool hasBoundingBox();
+    const AlignedBox3& getBoundingBox();
     void refreshFields();
     void draw(const DrawContext& c);
 
@@ -81,7 +85,8 @@ public:
     typedef List< Ref<PointCloud> > List;
 
 public:
-    PointCloud() : NodeComponent()
+    PointCloud() : NodeComponent(),
+        myVisible(true)
     {
         float maxf = numeric_limits<float>::max();
         float minf = -numeric_limits<float>::max();
@@ -94,11 +99,15 @@ public:
     bool setOptions(const String& options);
     bool setDimensions(Dimension* x, Dimension* y, Dimension* z);
     void setData(Dimension* fi);
+    void setVectorData(Dimension* x, Dimension* y, Dimension* z);
     void setSize(Dimension* fi);
     void setFilter(Dimension* fi);
     Dimension* getX() { return myX; }
     Dimension* getY() { return myY; }
     Dimension* getZ() { return myZ; }
+    Dimension* getDataX() { return myDataX; }
+    Dimension* getDataY() { return myDataY; }
+    Dimension* getDataZ() { return myDataZ; }
     Dimension* getData() { return myData; }
     Dimension* getSize() { return mySize; }
     Dimension* getFilter() { return myFilter; }
@@ -106,6 +115,7 @@ public:
     void setPointScale(float scale);
     void normalizeFilterBounds(bool enabled);
     void setFilterBounds(float fmin, float fmax);
+    void setDecimation(int dec);
 
     void setColormap(PixelData* colormap);
     PixelData* getColormap() { return myColormap; }
@@ -122,17 +132,22 @@ public:
     void setProgram(Program* p);
     Program* getProgram() { return myProgram; }
 
-    bool isVisible() { return getOwner() != NULL && getOwner()->isVisible(); }
+    bool isVisible() { return myVisible && getOwner() != NULL && getOwner()->isVisible(); }
+    void setVisible(bool v) { myVisible = v; }
 
 private:
     void refreshFields();
 
 private:
+    bool myVisible;
     Ref<Dataset> myDataset;
     Ref<Dimension> myX;
     Ref<Dimension> myY;
     Ref<Dimension> myZ;
     Ref<Dimension> myData;
+    Ref<Dimension> myDataX;
+    Ref<Dimension> myDataY;
+    Ref<Dimension> myDataZ;
     Ref<Dimension> mySize;
     Ref<Dimension> myFilter;
     Ref<Program> myProgram;
@@ -170,6 +185,9 @@ public:
 
     PixelData* getOutput() { return myOutput; }
 
+    void updateChannelBounds(bool useChannelTexture);
+    void setChannelBounds(float cmin, float cmax);
+
 private:
     PointCloud::List myPointClouds;
 
@@ -190,7 +208,7 @@ private:
 
     float myChannelMin;
     float myChannelMax;
-
+    bool myUpdateChannelBounds;
 };
 
 #endif

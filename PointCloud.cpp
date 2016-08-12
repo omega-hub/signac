@@ -9,6 +9,9 @@
 #define VA_DATA 3
 #define VA_SIZE 4
 #define VA_FILTER 5
+#define VA_VECTOR_DATA_X 6
+#define VA_VECTOR_DATA_Y 7
+#define VA_VECTOR_DATA_Z 8
 
 ///////////////////////////////////////////////////////////////////////////////
 bool LOD::parse(const String& options, Vector<LOD>* lodlevels, size_t* pointsPerBatch)
@@ -77,7 +80,26 @@ void PointBatch::refreshFields()
         bd->filter = dim != NULL ? ds->getOrCreateField(dim, d) : NULL;
         dim = myOwner->getSize();
         bd->size = dim != NULL ? ds->getOrCreateField(dim, d) : NULL;
+
+        dim = myOwner->getDataX();
+        bd->datax = dim != NULL ? ds->getOrCreateField(dim, d) : NULL;
+        dim = myOwner->getDataY();
+        bd->datay = dim != NULL ? ds->getOrCreateField(dim, d) : NULL;
+        dim = myOwner->getDataZ();
+        bd->dataz = dim != NULL ? ds->getOrCreateField(dim, d) : NULL;
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+bool PointBatch::hasBoundingBox()
+{
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+const AlignedBox3& PointBatch::getBoundingBox()
+{ 
+    return myBBox; 
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -97,6 +119,9 @@ void PointBatch::draw(const DrawContext& dc)
         bd->va(dc)->setAttributeBinding(VA_DATA, 0, "data");
         bd->va(dc)->setAttributeBinding(VA_SIZE, 0, "size");
         bd->va(dc)->setAttributeBinding(VA_FILTER, 0, "filter");
+        bd->va(dc)->setAttributeBinding(VA_VECTOR_DATA_X, 0, "datax");
+        bd->va(dc)->setAttributeBinding(VA_VECTOR_DATA_Y, 0, "datay");
+        bd->va(dc)->setAttributeBinding(VA_VECTOR_DATA_Z, 0, "dataz");
 
         bd->drawCall(dc) = new GpuDrawCall(p->getGpuProgram(dc));
         bd->drawCall(dc)->setVertexArray(bd->va(dc));
@@ -131,11 +156,15 @@ void PointBatch::draw(const DrawContext& dc)
     bool hasData = false;
     bool hasSize = false;
     bool hasFilter = false;
+    bool hasVectorData = false;
 
     GpuBuffer* databuf = NULL;
     GpuBuffer* sizebuf = NULL;
     GpuBuffer* filterbuf = NULL;
-    
+    GpuBuffer* dataxbuf = NULL;
+    GpuBuffer* dataybuf = NULL;
+    GpuBuffer* datazbuf = NULL;
+
     // Data field
     Field* fd = bd->data;
     if(fd != NULL)
@@ -162,6 +191,29 @@ void PointBatch::draw(const DrawContext& dc)
         filterbuf = ff->getGpuBuffer(dc);
         readyToDraw &= (filterbuf != NULL);
     }
+
+    Field* fdx = bd->datax;
+    if(fdx)
+    {
+        dataxbuf = fdx->getGpuBuffer(dc);
+        readyToDraw &= (dataxbuf != NULL);
+    }
+
+    Field* fdy = bd->datay;
+    if(fdy)
+    {
+        dataybuf = fdy->getGpuBuffer(dc);
+        readyToDraw &= (dataybuf != NULL);
+    }
+
+    Field* fdz = bd->dataz;
+    if(fdz)
+    {
+        datazbuf = fdz->getGpuBuffer(dc);
+        readyToDraw &= (datazbuf != NULL);
+    }
+
+    if(fdx != NULL && fdy != NULL && fdz != NULL) hasVectorData = true;
 
     if(readyToDraw)
     {
@@ -193,6 +245,12 @@ void PointBatch::draw(const DrawContext& dc)
                 fmax = fmax * l + dim->floatRangeMin;
             }
             p->getFilterBounds(dc)->set(fmin, fmax);
+        }
+        if(hasVectorData)
+        {
+            bd->va(dc)->setBuffer(VA_VECTOR_DATA_X, dataxbuf);
+            bd->va(dc)->setBuffer(VA_VECTOR_DATA_Y, dataybuf);
+            bd->va(dc)->setBuffer(VA_VECTOR_DATA_Z, datazbuf);
         }
 
         Transform3 mvmat = dc.modelview * myOwner->getOwner()->getFullTransform();
@@ -263,6 +321,15 @@ bool PointCloud::setDimensions(Dimension* x, Dimension* y, Dimension* z)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void PointCloud::setVectorData(Dimension* x, Dimension* y, Dimension* z)
+{
+    myDataX = x;
+    myDataY = y;
+    myDataZ = z;
+    refreshFields();
+}
+
+///////////////////////////////////////////////////////////////////////////////
 void PointCloud::setData(Dimension* fi)
 { 
     myData = fi; 
@@ -299,10 +366,30 @@ void PointCloud::refreshFields()
 ///////////////////////////////////////////////////////////////////////////////
 void PointCloud::draw(const DrawContext& c)
 {
-    if(getOwner() == NULL || !getOwner()->isVisible()) return;
+    if(!isVisible()) return;
     myProgram->setParams(c, myProgramParams);
-    // FOr now draw all batches no frustum culling
-    foreach(PointBatch* b, myBatches) b->draw(c);
+
+    Rectf viewRect(-1, -1, 2, 2);
+
+    foreach(PointBatch* b, myBatches)
+    {
+        const AlignedBox3& bb = b->getBoundingBox();
+        Vector3f m = bb.getMinimum();
+        Vector3f M = bb.getMaximum();
+        Vector4f bm = c.mvp * Vector4f(m[0], m[1], m[2], 1);
+        Vector4f bM = c.mvp * Vector4f(M[0], M[1], M[2], 1);
+        bm = bm / bm.w();
+        bM = bM / bM.w();
+        float x = std::min(bm[0], bM[0]);
+        float y = std::min(bm[1], bM[1]);
+        float w = abs(bm[0] - bM[0]);
+        float h = abs(bm[1] - bM[1]);
+        Rectf br(x, y, w, h);
+        //if(br.intersects(viewRect))
+        {
+            b->draw(c);
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -350,6 +437,12 @@ void PointCloud::setFocusPosition(const Vector3f d)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void PointCloud::setDecimation(int dec)
+{
+    myProgramParams->decimation = dec;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 void PointCloud::setColormap(PixelData* colormap)
 {
     myColormap = colormap;
@@ -359,7 +452,8 @@ void PointCloud::setColormap(PixelData* colormap)
 PointCloudView::PointCloudView():
 myWidth(800),
 myHeight(600),
-myColormapperEnabled(false)
+myColormapperEnabled(false),
+myUpdateChannelBounds(false)
 {
     Signac::instance->addPointCloudView(this);
     myOutput = new PixelData(PixelData::FormatRgba, myWidth, myHeight);
@@ -475,19 +569,27 @@ void PointCloudView::draw(const DrawContext& c)
     if(myColormapperEnabled && !myMappingProgram.isNull())
     {
         myChannelTextureDraw(c)->setProgram(myMappingProgram->getGpuProgram(c));
-        // Get channel bounds
-        float chmin = myPointClouds.front()->getData()->floatRangeMin;
-        float chmax = myPointClouds.front()->getData()->floatRangeMax;
-        foreach(PointCloud* pc, myPointClouds)
+
+        /// If an update of the channel bounds is requested, read back the 
+        // channel texture and compute min/max
+        if(myUpdateChannelBounds)
         {
-            Dimension* d = pc->getData();
-            if(d != NULL)
+            myChannelMax = -std::numeric_limits<float>::max();
+            myChannelMin = std::numeric_limits<float>::max();
+            myUpdateChannelBounds = false;
+            size_t chdatasize = myWidth * myHeight * 4;
+            float* chdata = new float[chdatasize];
+            myChannelTexture(c)->readRawPixels((byte*)chdata, chdatasize);
+            for(size_t i = 0; i < chdatasize; i += 4)
             {
-                chmin = min(chmin, (float)d->floatRangeMin);
-                chmax = max(chmax, (float)d->floatRangeMax);
+                myChannelMax = std::max(myChannelMax, chdata[i]);
+                myChannelMin = std::min(myChannelMin, chdata[i]);
             }
+            delete chdata;
+            ofmsg("channel texture bounds %1%  %2%", %myChannelMax %myChannelMin);
         }
-        myMappingProgram->getDataBounds(c)->set(chmin, chmax);
+
+        myMappingProgram->getDataBounds(c)->set(myChannelMin, myChannelMax);
         myOutputRT(c)->bind();
         myOutputRT(c)->clear();
         myChannelTextureDraw(c)->run();
@@ -502,4 +604,30 @@ void PointCloudView::resize(int width, int height)
     myWidth = width;
     myHeight = height;
     myOutput->resize(width, height);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloudView::updateChannelBounds(bool useChannelTexture)
+{
+    // Get channel bounds
+    float chmin = myPointClouds.front()->getData()->floatRangeMin;
+    float chmax = myPointClouds.front()->getData()->floatRangeMax;
+    foreach(PointCloud* pc, myPointClouds)
+    {
+        Dimension* d = pc->getData();
+        if(d != NULL)
+        {
+            chmin = min(chmin, (float)d->floatRangeMin);
+            chmax = max(chmax, (float)d->floatRangeMax);
+        }
+    }
+    setChannelBounds(chmin, chmax);
+    myUpdateChannelBounds = useChannelTexture;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void PointCloudView::setChannelBounds(float cmin, float cmax)
+{
+    myChannelMin = cmin;
+    myChannelMax = cmax;
 }

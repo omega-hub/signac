@@ -2,7 +2,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 ProgramParams::ProgramParams():
-    pointScale(0.001f)
+    pointScale(0.001f),
+    decimation(1)
 {
     filterMin = -numeric_limits<float>::max();
     filterMax = numeric_limits<float>::max();
@@ -69,6 +70,7 @@ bool Program::prepare(const DrawContext& dc)
         myFilterBounds(dc) = p->addUniform("filterBounds");
 
         myColor(dc) = p->addUniform("color");
+        myDecimation(dc) = p->addUniform("decimation");
 
         myProgram(dc) = p;
     }
@@ -129,6 +131,7 @@ void Program::setParams(const DrawContext& dc, ProgramParams* p)
     float* c = p->color.data();
     myColor(dc)->set(c[0], c[1], c[2], c[3]);
     myFocusPosition(dc)->set(p->focusPosition[0], p->focusPosition[1], p->focusPosition[2]);
+    myDecimation(dc)->set(p->decimation);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

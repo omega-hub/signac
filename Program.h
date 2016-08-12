@@ -18,6 +18,7 @@ public:
     float filterMin;
     bool normalizedFilterBounds;
     Color color;
+    int decimation;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -67,6 +68,7 @@ private:
     GpuRef<Uniform> myDataBounds;
     GpuRef<Uniform> myFilterBounds;
     GpuRef<Uniform> myColor;
+    GpuRef<Uniform> myDecimation;
 
 
     // Program Parameters & Uniforms
