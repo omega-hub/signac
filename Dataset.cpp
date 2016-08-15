@@ -30,6 +30,8 @@ Field::Field(Dimension* info, const Domain& dom):
     loading(false),
     stamp(0)
 {
+    boundMax = -std::numeric_limits<float>::max();
+    boundMin = std::numeric_limits<float>::max();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -38,7 +40,6 @@ Dataset::Dataset(const String& name):
     myName(name),
     myNumRecords(0)
 {
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////

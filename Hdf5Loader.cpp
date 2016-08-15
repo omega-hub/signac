@@ -90,6 +90,8 @@ public:
             {
                 fmin = fmin < fielddata[i] ? fmin : fielddata[i];
                 fmax = fmax > fielddata[i] ? fmax : fielddata[i];
+                field->boundMin = field->boundMin < fielddata[i] ? field->boundMin : fielddata[i];
+                field->boundMax = field->boundMax > fielddata[i] ? field->boundMax : fielddata[i];
             }
             field->getDimension()->floatRangeMin = fmin;
             field->getDimension()->floatRangeMax = fmax;

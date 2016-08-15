@@ -89,6 +89,8 @@ public:
     bool loading;
     Domain domain;
     double stamp;
+    double boundMin;
+    double boundMax;
 
     Lock lock;
 

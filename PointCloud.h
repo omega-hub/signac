@@ -83,18 +83,9 @@ class PointCloud : public NodeComponent
     friend class PointBatch;
 public:
     typedef List< Ref<PointCloud> > List;
-
+    static PointCloud* create(const String& name) { return new PointCloud(name); }
 public:
-    PointCloud() : NodeComponent(),
-        myVisible(true)
-    {
-        float maxf = numeric_limits<float>::max();
-        float minf = -numeric_limits<float>::max();
-        //myBBox.setExtents(Vector3f(minf, minf, minf), Vector3f(maxf, maxf, maxf));
-        myMinDataBounds = Vector4f(maxf, maxf, maxf, maxf);
-        myMaxDataBounds = Vector4f(minf, minf, minf, minf);
-        myProgramParams = new ProgramParams();
-    }
+    PointCloud(const String& name);
 
     bool setOptions(const String& options);
     bool setDimensions(Dimension* x, Dimension* y, Dimension* z);
@@ -162,6 +153,8 @@ private:
     AlignedBox3 myBBox;
     Vector4f myMinDataBounds;
     Vector4f myMaxDataBounds;
+
+    Ref<Stat> myBatchDrawStat;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -187,6 +180,8 @@ public:
 
     void updateChannelBounds(bool useChannelTexture);
     void setChannelBounds(float cmin, float cmax);
+    float getChannelMin() { return myChannelMin;  }
+    float getChannelMax() { return myChannelMax; }
 
 private:
     PointCloud::List myPointClouds;

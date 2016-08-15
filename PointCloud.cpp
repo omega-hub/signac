@@ -93,12 +93,26 @@ void PointBatch::refreshFields()
 ///////////////////////////////////////////////////////////////////////////////
 bool PointBatch::hasBoundingBox()
 {
-    return true;
+    BatchDrawable* bd = myDrawables.front();
+    return bd != NULL && bd->x != NULL && bd->x->loaded &&
+        bd->y != NULL && bd->y->loaded &&
+        bd->z != NULL && bd->z->loaded;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 const AlignedBox3& PointBatch::getBoundingBox()
-{ 
+{
+    if(hasBoundingBox())
+    {
+        BatchDrawable* bd = myDrawables.front();
+        myBBox.setExtents(
+            bd->x->boundMin,
+            bd->y->boundMin,
+            bd->z->boundMin,
+            bd->x->boundMax,
+            bd->y->boundMax,
+            bd->z->boundMax);
+    }
     return myBBox; 
 }
 
@@ -269,6 +283,20 @@ void PointBatch::draw(const DrawContext& dc)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+PointCloud::PointCloud(const String& name) : NodeComponent(),
+myVisible(true)
+{
+    float maxf = numeric_limits<float>::max();
+    float minf = -numeric_limits<float>::max();
+    //myBBox.setExtents(Vector3f(minf, minf, minf), Vector3f(maxf, maxf, maxf));
+    myMinDataBounds = Vector4f(maxf, maxf, maxf, maxf);
+    myMaxDataBounds = Vector4f(minf, minf, minf, minf);
+    myProgramParams = new ProgramParams();
+
+    myBatchDrawStat = Stat::create(ostr("%1% batches", %name), StatsManager::Primitive);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 bool PointCloud::setOptions(const String& options)
 {
     LOD::parse(options, &myLODLevels, &myPointsPerBatch);
@@ -312,7 +340,8 @@ bool PointCloud::setDimensions(Dimension* x, Dimension* y, Dimension* z)
             batch->addDrawable(&ll, start, myPointsPerBatch);
         }
 
-        myBBox.merge(batch->getBoundingBox());
+        // Batch bounding box is not ready at this point.
+        //myBBox.merge(batch->getBoundingBox());
     }
 
     refreshFields();
@@ -371,25 +400,46 @@ void PointCloud::draw(const DrawContext& c)
 
     Rectf viewRect(-1, -1, 2, 2);
 
+    int bc = 0;
     foreach(PointBatch* b, myBatches)
     {
-        const AlignedBox3& bb = b->getBoundingBox();
-        Vector3f m = bb.getMinimum();
-        Vector3f M = bb.getMaximum();
-        Vector4f bm = c.mvp * Vector4f(m[0], m[1], m[2], 1);
-        Vector4f bM = c.mvp * Vector4f(M[0], M[1], M[2], 1);
-        bm = bm / bm.w();
-        bM = bM / bM.w();
-        float x = std::min(bm[0], bM[0]);
-        float y = std::min(bm[1], bM[1]);
-        float w = abs(bm[0] - bM[0]);
-        float h = abs(bm[1] - bM[1]);
-        Rectf br(x, y, w, h);
-        //if(br.intersects(viewRect))
+        if(b->hasBoundingBox())
         {
+            const AlignedBox3& bb = b->getBoundingBox();
+            const Vector3f* corners = bb.getAllCorners();
+            Transform3 xf = c.projection * c.modelview * getOwner()->getFullTransform();
+            Vector2f vmin(2.0f, 2.0f);
+            Vector2f vmax(-2.0f, -2.0f);
+            for(int i = 0; i < 8; i++)
+            {
+                Vector4f ch(corners[i][0], corners[i][1], corners[i][2], 1.0f);
+                Vector4f c = xf * ch;
+                c = c / c.w();
+                vmin = vmin.cwiseMin(Vector2f(c[0], c[1]));
+                vmax = vmax.cwiseMax(Vector2f(c[0], c[1]));
+            }
+            float x = vmin[0];
+            float y = vmin[1];
+            float w = vmax[0] - vmin[0];
+            float h = vmax[1] - vmin[1];
+            Rectf br(x, y, w, h);
+
+            if(br.intersects(viewRect))
+            {
+                b->draw(c);
+                bc++;
+            }
+        }
+        else
+        {
+            // If the batch drawable does not have a bounding box yet, just
+            // draw it. Bounding box will be ready eventually.
             b->draw(c);
+            bc++;
         }
     }
+
+    myBatchDrawStat->addSample(bc);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
