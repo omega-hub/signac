@@ -9,12 +9,11 @@
 #include "FireLoader.h"
 #include "Scatterplot.h"
 #include "PointCloud.h"
+#include "PointCloudView.h"
 
 using namespace omega;
 
 List<Plot*> plots;
-
-///////////////////////////////////////////////////////////////////////////////
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -58,10 +57,22 @@ public:
 };
 
 ///////////////////////////////////////////////////////////////////////////////
-Signac::Signac() : EngineModule("signac")
+Signac::Signac() : EngineModule("signac"),
+    myWorkerThreads(4)
 {
     ModuleServices::addModule(this);
     requestOpenGLProfile(EngineModule::CoreProfile);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void Signac::dispose()
+{
+    if(!myWorkers.isNull())
+    {
+        omsg("[Signac::dispose] clearing worker queue");
+        myWorkers->clearQueue();
+        myWorkers->stop();
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -111,6 +122,28 @@ Program* Signac::getProgram(const String& name)
     return NULL;
 }
 
+///////////////////////////////////////////////////////////////////////////////
+void Signac::signalFieldLoaded(Field* f)
+{
+    if(myFieldLoadedCommand.length() > 0)
+    {
+        PythonInterpreter* pi = SystemManager::instance()->getScriptInterpreter();
+        String cmd = StringUtils::replaceAll(myFieldLoadedCommand, "%1%", f->getName());
+        pi->queueCommand(cmd);
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void Signac::addTask(WorkerTask* task)
+{
+    if(myWorkers.isNull())
+    {
+        myWorkers = new WorkerPool();
+        myWorkers->start(myWorkerThreads);
+    }
+    myWorkers->queue(task);
+}
+
 
 Signac* Signac::instance = NULL;
 
@@ -143,7 +176,7 @@ BOOST_PYTHON_MODULE(signac)
     PYAPI_REF_CLASS_WITH_CTOR(Hdf5Loader, Loader)
         ;
 
-    PYAPI_REF_CLASS_WITH_CTOR(FireLoader, Hdf5Loader)
+    PYAPI_REF_CLASS_WITH_CTOR(FireLoader, Loader)
         ;
 
     PYAPI_REF_CLASS_WITH_CTOR(BinaryLoader, Loader)
@@ -239,6 +272,8 @@ BOOST_PYTHON_MODULE(signac)
     PYAPI_REF_BASE_CLASS_WITH_CTOR(Signac)
         PYAPI_STATIC_REF_GETTER(Signac, getInstance)
         PYAPI_REF_GETTER(Signac, addProgram)
+        PYAPI_METHOD(Signac, setFieldLoadedCommand)
+        PYAPI_METHOD(Signac, setWorkerThreads)
         ;
 
     Signac::instance = new Signac();

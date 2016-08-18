@@ -4,78 +4,10 @@
 #include <omega.h>
 
 #include "Dataset.h"
-#include "PointCloud.h"
+#include "PointBatch.h"
 #include "Program.h"
 
 using namespace omega;
-
-class PointCloud;
-class PointBatch;
-
-///////////////////////////////////////////////////////////////////////////////
-class LOD
-{
-public:
-    LOD(int dmin, int dmax, int dc) :
-        distmin(dmin),
-        distmax(dmax),
-        dec(dc) {}
-    int distmin;
-    int distmax;
-    int dec;
-
-    static bool parse(const String& options, Vector<LOD>* lodlevels, size_t* pointsPerBatch);
-};
-
-///////////////////////////////////////////////////////////////////////////////
-class BatchDrawable : public ReferenceType
-{
-public:
-    BatchDrawable(PointBatch* batch, LOD* lod, size_t start, size_t length) :
-        LOD(lod),
-        batchStart(start),
-        batchLength(length)
-    {}
-
-    Ref<Field> x;
-    Ref<Field> y;
-    Ref<Field> z;
-    Ref<Field> data;
-    Ref<Field> datax;
-    Ref<Field> datay;
-    Ref<Field> dataz;
-    Ref<Field> size;
-    Ref<Field> filter;
-
-    PointBatch* batch;
-    LOD* LOD;
-    String myFilename;
-    size_t batchStart;
-    size_t batchLength;
-
-    GpuRef<GpuDrawCall> drawCall;
-    GpuRef<GpuArray> va;
-    GpuRef<Texture> colormap;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-class PointBatch : public ReferenceType
-{
-public:
-    PointBatch(PointCloud* owner);
-
-    void addDrawable(LOD* lod, size_t start, size_t length);
-
-    bool hasBoundingBox();
-    const AlignedBox3& getBoundingBox();
-    void refreshFields();
-    void draw(const DrawContext& c);
-
-private:
-    PointCloud* myOwner;
-    List< Ref<BatchDrawable> > myDrawables;
-    AlignedBox3 myBBox;
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 class PointCloud : public NodeComponent
@@ -157,53 +89,5 @@ private:
     Ref<Stat> myBatchDrawStat;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-class PointCloudView : public ReferenceType
-{
-public:
-    PointCloudView();
-    ~PointCloudView();
-
-    void addPointCloud(PointCloud* pc);
-    void removePointCloud(PointCloud* pc);
-    void draw(const DrawContext& dc);
-
-    void enableColormapper(bool enabled) { myColormapperEnabled = enabled; }
-    void setColormapper(Program* p);
-    Program* getMappingProgram() { return myMappingProgram; }
-    void setColormap(PixelData* colormap);
-    PixelData* getColormap() { return myColormap; }
-
-    void resize(int width, int height);
-
-    PixelData* getOutput() { return myOutput; }
-
-    void updateChannelBounds(bool useChannelTexture);
-    void setChannelBounds(float cmin, float cmax);
-    float getChannelMin() { return myChannelMin;  }
-    float getChannelMax() { return myChannelMax; }
-
-private:
-    PointCloud::List myPointClouds;
-
-    Ref<PixelData> myOutput;
-    bool myColormapperEnabled;
-    Ref<PixelData> myColormap;
-    GpuRef<Texture> myColormapTexture;
-
-    // Image render
-    GpuRef<RenderTarget> myChannelRT;
-    GpuRef<RenderTarget> myOutputRT;
-    GpuRef<Texture> myChannelTexture;
-    GpuRef<GpuArray> myQuad;
-    GpuRef<GpuDrawCall> myChannelTextureDraw;
-    Ref<Program> myMappingProgram;
-    int myWidth;
-    int myHeight;
-
-    float myChannelMin;
-    float myChannelMax;
-    bool myUpdateChannelBounds;
-};
 
 #endif

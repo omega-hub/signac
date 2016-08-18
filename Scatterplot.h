@@ -2,6 +2,7 @@
 #define __SCATTERPLOT_H__
 #include <omega.h>
 #include "Dataset.h"
+#include "Filter.h"
 
 using namespace omega;
 

@@ -21,12 +21,19 @@ public:
     static Signac* getInstance() { return instance; }
     Signac();
     void update(const UpdateContext& context);
+    virtual void dispose();
     virtual void initializeRenderer(Renderer* r);
 
     Program* addProgram(const String& name);
     Program* getProgram(const String& name);
 
     Program::List& getPrograms() { return myPrograms; }
+
+    void setFieldLoadedCommand(const String& cmd) { myFieldLoadedCommand = cmd; }
+    void signalFieldLoaded(Field* f);
+
+    void addTask(WorkerTask* task);
+    void setWorkerThreads(int th) { myWorkerThreads = th; }
 
 protected:
     void addPointCloudView(PointCloudView* pc);
@@ -36,7 +43,9 @@ private:
     List<PointCloudView*> myPointCloudViews;
     Program::List myPrograms;
     Lock myLock;
-
+    String myFieldLoadedCommand;
+    int myWorkerThreads;
+    Ref<WorkerPool> myWorkers;
 };
 
 #endif

@@ -1,5 +1,6 @@
 #include <hdf5.h>
 
+#include "signac.h"
 #include "Hdf5Loader.h"
 
 // Maximum number of rows that can be read for each loaded block.
@@ -43,12 +44,22 @@ public:
                 %field->getDimension()->dataset->getName()
                 %dimname);
             int colidx = field->getDimension()->index;
+            
+            // If the domain has a stream id, use the stream offset as the read
+            // start, instead of the domain start. This is to support multipart
+            // files.
             size_t sstart = field->domain.start;
+            if(field->domain.streamid != -1) sstart = field->domain.streamoffset;
             size_t slen = field->domain.length;
             int sstride = field->domain.decimation;
 
 
             hid_t dataset_id = H5Dopen2(file_id, dsetname.c_str(), H5P_DEFAULT);
+            if(dataset_id == -1)
+            {
+                ofwarn("Failed opening dataset %1%", %dsetname);
+                return;
+            }
             hid_t dspace_id = H5Dget_space(dataset_id);
 
             size_t nr = field->getDimension()->dataset->getNumRecords();
@@ -101,6 +112,8 @@ public:
             field->stamp = otimestamp();
             field->lock.unlock();
 
+            Signac::instance->signalFieldLoaded(field);
+
             flock.lock();
             H5Sclose(mspace_id);
             H5Sclose(dspace_id);
@@ -115,14 +128,12 @@ public:
 ///////////////////////////////////////////////////////////////////////////////
 Hdf5Loader::~Hdf5Loader()
 {
-    myLoaderPool.stop();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void Hdf5Loader::open(const String& source)
 {
     myFilename = source;
-    myLoaderPool.start(6);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -144,5 +155,6 @@ void Hdf5Loader::load(Field* f)
     task->blockStart = 0;
     task->blockLength = BLOCK_SIZE;
     task->path = myFilename;
-    myLoaderPool.queue(task);
+
+    Signac::instance->addTask(task);
 }

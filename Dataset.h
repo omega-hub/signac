@@ -6,42 +6,19 @@ using namespace omega;
 
 class Dataset;
 
-///////////////////////////////////////////////////////////////////////////
-//! A template for accessing gpu resources on multiple contexts.
-template<typename T> class GpuRef
-{
-public:
-    GpuRef()
-    {
-        memset(myStamps, 0, sizeof(myStamps));
-    }
-    Ref<T>& operator()(const GpuContext& context)
-    {
-        return myObjects[context.getId()];
-    }
-    Ref<T>& operator()(const DrawContext& context)
-    {
-        return myObjects[context.gpuContext->getId()];
-    }
-    double& stamp(const GpuContext& context)
-    {
-        return myStamps[context.getId()];
-    }
-    double& stamp(const DrawContext& context)
-    {
-        return myStamps[context.gpuContext->getId()];
-    }
-private:
-    Ref<T> myObjects[GpuContext::MaxContexts];
-    double myStamps[GpuContext::MaxContexts];
-};
-
 ///////////////////////////////////////////////////////////////////////////////
 struct Domain 
 {
-    Domain(size_t s = 0, size_t l = 0, int d = 0) : start(s), length(l), decimation(d) {}
+    Domain(size_t s = 0, size_t l = 0, int d = 0) : 
+        start(s), 
+        length(l), 
+        decimation(d),
+        streamid(-1),
+        streamoffset(0) {}
     bool operator==(const Domain& rhs)
     {
+        // Note, we do NOT compare streamid and streamoffset, they are internal
+        // values.
         return start == rhs.start && 
             length == rhs.length && 
             decimation == rhs.decimation;
@@ -50,6 +27,11 @@ struct Domain
     size_t start;
     size_t length;
     int decimation;
+
+    // These values are used by multifile loaders to translate logical domain 
+    // positions starts to file-specific values.
+    int streamid;
+    size_t streamoffset;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -116,42 +98,6 @@ private:
     Ref<Dimension> myInfo;
 
     GpuRef<GpuBuffer> myGpuBuffer;
-};
-
-///////////////////////////////////////////////////////////////////////////////
-class Filter : public WorkerTask
-{
-public:
-    static const int MaxFields = 4;
-
-    Filter();
-    ~Filter();
-    void setField(uint index, Field* f);
-    void setRange(uint index, float fmin, float fmax);
-    void setNormalizedRange(uint index, float fmin, float fmax);
-    void execute(WorkerTask::TaskInfo* ti);
-    void update();
-    GpuBuffer* getIndexBuffer(const DrawContext& dc);
-    uint getFilteredLength() { return myIndexLen; }
-
-    double getIndexStamp() { return myIndexStamp; }
-
-private:
-    template<typename T> void filterKernel(double timestamp);
-
-
-private:
-    WorkerPool myUpdater;
-    GpuRef<GpuBuffer> myGpuBuffer;
-    Lock myLock;
-    uint* myIndices;
-    uint myIndexLen;
-    Field* myField[MaxFields];
-    float myMin[MaxFields];
-    float myMax[MaxFields];
-    int myNumFields;
-    double myRangeStamp;
-    double myIndexStamp;
 };
 
 class Loader;

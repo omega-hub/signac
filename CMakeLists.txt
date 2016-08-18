@@ -18,13 +18,19 @@ add_library(signac MODULE
     CsvLoader.h
     Dataset.cpp
     Dataset.h
+    Filter.cpp
+    Filter.h
     FireLoader.cpp
     FireLoader.h
     Hdf5Loader.cpp
     Hdf5Loader.h
     Loader.h
+    PointBatch.cpp
+    PointBatch.h
     PointCloud.cpp
     PointCloud.h
+    PointCloudView.cpp
+    PointCloudView.h
     Program.cpp
     Program.h
     Scatterplot.cpp

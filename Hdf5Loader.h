@@ -17,6 +17,5 @@ public:
 
 protected:
     String myFilename;
-    WorkerPool myLoaderPool;
 };
 #endif
