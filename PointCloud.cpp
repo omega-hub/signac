@@ -109,6 +109,8 @@ void PointCloud::refreshFields()
         else myProgram->define("SIZE_MODE", "0");
         if(myFilter != NULL) myProgram->define("FILTER_MODE", "1");
         else myProgram->define("FILTER_MODE", "0");
+        if(myData != NULL) myProgram->define("DATA_MODE", "1");
+        else myProgram->define("DATA_MODE", "0");
     }
 
     myBBox.setNull();

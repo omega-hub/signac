@@ -58,6 +58,8 @@ bool Program::prepare(const DrawContext& dc)
     {
         GpuProgram* p = dc.gpuContext->createProgram();
 
+        p->setName(myName);
+        
         myVMatrix(dc) = p->addUniform("view");
         myMVPMatrix(dc) = p->addUniform("modelViewProjection");
         myMVMatrix(dc) = p->addUniform("modelView");
@@ -91,21 +93,27 @@ bool Program::prepare(const DrawContext& dc)
             int c = 0;
             p->setShaderSource(GpuProgram::VertexShader, "#version 400\n", c++);
             p->setShaderSource(GpuProgram::VertexShader, defs, c++);
+            p->setShaderSource(GpuProgram::VertexShader, "#line 2\n", c++);
             p->setShader(GpuProgram::VertexShader, myVertexShaderFilename, c++);
+            p->setShaderName(GpuProgram::VertexShader, myVertexShaderFilename);
         }
         if(!myFragmentShaderFilename.empty())
         {
             int c = 0;
             p->setShaderSource(GpuProgram::FragmentShader, "#version 400\n", c++);
             p->setShaderSource(GpuProgram::FragmentShader, defs, c++);
+            p->setShaderSource(GpuProgram::FragmentShader, "#line 2\n", c++);
             p->setShader(GpuProgram::FragmentShader, myFragmentShaderFilename, c++);
+            p->setShaderName(GpuProgram::FragmentShader, myFragmentShaderFilename);
         }
         if(!myGeometryShaderFilename.empty())
         {
             int c = 0;
             p->setShaderSource(GpuProgram::GeometryShader, "#version 400\n", c++);
             p->setShaderSource(GpuProgram::GeometryShader, defs, c++);
+            p->setShaderSource(GpuProgram::GeometryShader, "#line 2\n", c++);
             p->setShader(GpuProgram::GeometryShader, myGeometryShaderFilename, c++);
+            p->setShaderName(GpuProgram::GeometryShader, myGeometryShaderFilename);
         }
         bool ok = p->build();
         oassert(ok);

@@ -6,6 +6,7 @@
 #include "Program.h"
 using namespace omega;
 
+class PointCloudView;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Signac Engine module, gets registered when module is imported, takes care

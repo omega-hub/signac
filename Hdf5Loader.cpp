@@ -8,7 +8,7 @@
 #define BLOCK_SIZE 4096000 
 
 // Lock to serialize HDF5 operations
-Lock flock;
+Lock hdf5APIlock;
 
 ///////////////////////////////////////////////////////////////////////////////
 class Hdf5LoadTask : public WorkerTask
@@ -35,7 +35,7 @@ public:
         String fullpath;
         if(DataManager::findFile(path, fullpath))
         {
-            flock.lock();
+            hdf5APIlock.lock();
             file_id = H5Fopen(fullpath.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
             // Find the dimension and datset name
@@ -91,7 +91,7 @@ public:
             float* fielddata = (float*)malloc(p1 * sizeof(float));
             status = H5Dread(dataset_id, H5T_IEEE_F32LE, mspace_id, dspace_id, H5P_DEFAULT, fielddata);
             oassert(status != -1);
-            flock.unlock();
+            hdf5APIlock.unlock();
 
             field->lock.lock();
             // Update dimension bounds
@@ -114,12 +114,12 @@ public:
 
             Signac::instance->signalFieldLoaded(field);
 
-            flock.lock();
+            hdf5APIlock.lock();
             H5Sclose(mspace_id);
             H5Sclose(dspace_id);
             H5Dclose(dataset_id);
             H5Fclose(file_id);
-            flock.unlock();
+            hdf5APIlock.unlock();
         }
     }
 

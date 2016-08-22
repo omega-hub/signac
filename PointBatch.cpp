@@ -132,7 +132,7 @@ void PointBatch::draw(const DrawContext& dc)
         bd->va(dc)->setAttributeBinding(VA_Z, 0, "z");
         bd->va(dc)->setAttributeBinding(VA_DATA, 0, "data");
         bd->va(dc)->setAttributeBinding(VA_SIZE, 0, "size");
-        bd->va(dc)->setAttributeBinding(VA_FILTER, 0, "filter");
+        bd->va(dc)->setAttributeBinding(VA_FILTER, 0, "datafilter");
         bd->va(dc)->setAttributeBinding(VA_VECTOR_DATA_X, 0, "datax");
         bd->va(dc)->setAttributeBinding(VA_VECTOR_DATA_Y, 0, "datay");
         bd->va(dc)->setAttributeBinding(VA_VECTOR_DATA_Z, 0, "dataz");

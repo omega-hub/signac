@@ -8,7 +8,11 @@ if(OMEGA_OS_WIN)
         ${CMAKE_BINARY_DIR}/3rdparty/hdf5/install/lib/hdf5.lib
         ${CMAKE_BINARY_DIR}/3rdparty/hdf5/install/lib/hdf5_hl.lib)
 else()
+    set(HDF5_C_LIBRARIES
+        libhdf5.dylib
+        libhdf5_hl.dylib)
 endif()
+
 add_library(signac MODULE 
     signac.cpp
     signac.h

@@ -22,6 +22,7 @@ size_t getHeaderArrayValue(const String& filename, const String& arrayname, int 
 
         return npa[index];
     }
+    return 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
