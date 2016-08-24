@@ -133,7 +133,10 @@ Hdf5Loader::~Hdf5Loader()
 ///////////////////////////////////////////////////////////////////////////////
 void Hdf5Loader::open(const String& source)
 {
-    myFilename = source;
+    if(!DataManager::findFile(source, myFilename))
+    {
+        ofwarn("[Hdf5Loader::open] could not find %1%", %source);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
