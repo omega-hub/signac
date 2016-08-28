@@ -132,8 +132,11 @@ Opens the specified source. Source depends on the specific loader implementation
 #### getX ####
 #### getY ####
 > setX([Field] x)
+
 > [Field] getX()
+
 > setY([Field] y)
+
 > [Field] getY()
 
 #### setSize ####
@@ -178,7 +181,9 @@ Opens the specified source. Source depends on the specific loader implementation
 #### getChannelMin ####
 #### getChannelMax ####
 > setChannelBounds(float channelMin, float channelMax)
+
 > float getChannelMin()
+
 > float getChannelMax()
 
 #### getOutput ####
@@ -202,8 +207,11 @@ Opens the specified source. Source depends on the specific loader implementation
 #### getDataY ####
 #### getDataZ ####
 > setData([Dimension] data)
+
 > [Dimension] getDataX()
+
 > [Dimension] getDataY()
+
 > [Dimension] getDataZ()
 
 #### setVectorData ####
@@ -224,6 +232,7 @@ Opens the specified source. Source depends on the specific loader implementation
 #### setProgram ####
 #### getProgram ####
 > setProgram([Program] program)
+
 > [Program] getProgram()
 
 #### setPointScale ####
@@ -232,11 +241,13 @@ Opens the specified source. Source depends on the specific loader implementation
 #### setColormap ####
 #### getColormap ####
 > setColormap([PixelData] colormap)
+
 > [PixelData] getColormap()
 
 #### setColor ####
 #### getColor ####
 > setColor([Color] color)
+
 > [Color] getColor()
 
 #### setDecimation ####
@@ -297,3 +308,4 @@ Opens the specified source. Source depends on the specific loader implementation
 [NodeComponent]: https://github.com/uic-evl/omegalib/wiki/SceneNode
 [Vector3]: https://github.com/uic-evl/omegalib/wiki/Vector
 [Color]: https://github.com/uic-evl/omegalib/wiki/Color
+[PixelData]: https://github.com/uic-evl/omegalib/wiki/PixelData
