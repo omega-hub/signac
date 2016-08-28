@@ -29,6 +29,9 @@ A descriptive label for the dimension.
 #### dataset ####
 > Dataset dataset
 
+#### type ####
+> [DimensionType](#dimensiontype) type 
+
 --------------------------------------------------------------------------------
 ### Loader ###
 Loader is the base class for data loaders
@@ -37,8 +40,5 @@ Loader is the base class for data loaders
 > open(string source)
 
 Opens the specified source. Source depends on the specific loader implementation.
-
-#### type ####
-> DimensionType type 
 
 --------------------------------------------------------------------------------
