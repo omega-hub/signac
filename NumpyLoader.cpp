@@ -5,7 +5,8 @@
 ///////////////////////////////////////////////////////////////////////////////
 NumpyLoader::NumpyLoader()
 {
-
+    // Initialize the Numpy C API
+    import_array();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -31,13 +32,13 @@ void NumpyLoader::addDimension(const String& name, PyObject* dataobject)
     // to make sure it's a numpy array.
     myObject = (PyArrayObject*)dataobject;
     
-    //int nd = PyArray_NDIM(myObject);
+    int nd = PyArray_NDIM(myObject);
     //npy_intp* shape = PyArray_SHAPE(myObject);
     int size = PyArray_SIZE(myObject);
-    ofmsg("array size: %1%", %size);
+    //ofmsg("array size: %1%", %size);
     
     int* data = (int*)PyArray_DATA(myObject);
-    for(int i = 0; i < size; i++) ofmsg("[%1%] = %2%", %i %data[i]);
+    for(int i = 0; i < size; i++) printf("%d ", data[i]);
     
 }
 
