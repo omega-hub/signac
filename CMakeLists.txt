@@ -18,6 +18,8 @@ add_library(signac MODULE
     Hdf5Loader.cpp
     Hdf5Loader.h
     Loader.h
+    NumpyLoader.cpp
+    NumpyLoader.h
     PointBatch.cpp
     PointBatch.h
     PointCloud.cpp

@@ -6,6 +6,7 @@
 #include "BinaryLoader.h"
 #include "Dataset.h"
 #include "Hdf5Loader.h"
+#include "NumpyLoader.h"
 #include "FireLoader.h"
 #include "Scatterplot.h"
 #include "PointCloud.h"
@@ -179,6 +180,10 @@ BOOST_PYTHON_MODULE(signac)
     PYAPI_REF_CLASS_WITH_CTOR(FireLoader, Loader)
         ;
 
+    PYAPI_REF_CLASS_WITH_CTOR(NumpyLoader, Loader)
+        PYAPI_METHOD(NumpyLoader, addDimension)
+        ;
+        
     PYAPI_REF_CLASS_WITH_CTOR(BinaryLoader, Loader)
         ;
 
