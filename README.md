@@ -67,6 +67,16 @@ Opens the specified source. Source depends on the specific loader implementation
 > extends [Loader]
 
 An extention of loader used to open simple CSV files.
+
+--------------------------------------------------------------------------------
+### NumpyLoader ###
+> extends [Loader]
+
+An extention of loader used to load data from numpy arrays.
+
+#### addDimension ####
+> addDimension(string name, nparray data)
+
 --------------------------------------------------------------------------------
 ### Hdf5Loader ###
 > extends [Loader]
