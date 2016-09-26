@@ -22,6 +22,7 @@ public:
     void addDimension(const String& name, PyObject* dataobject);
 
 private:
-    PyArrayObject* myObject;
+    Dictionary<String, PyArrayObject*> myObjects;
+    size_t myNumRecords;
 };
 #endif
