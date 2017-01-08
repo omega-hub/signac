@@ -34,16 +34,21 @@ void NumpyLoader::open(const String& source)
 ///////////////////////////////////////////////////////////////////////////////
 void NumpyLoader::addDimension(const String& name, PyObject* dataobject)
 {
-    // NOTE: unsafe cast here. we should do some basic sanity checks on dataobject
-    // to make sure it's a numpy array.
-    PyArrayObject* ao = (PyArrayObject*)dataobject;
-    Py_INCREF(ao);
+    if(PyArray_Check(dataobject)) 
+    {
+        PyArrayObject* ao = (PyArrayObject*)dataobject;
+        Py_INCREF(ao);
     
-    myObjects[name] = ao;
+        myObjects[name] = ao;
     
-    npy_intp* shape = PyArray_SHAPE(ao);
-    myNumRecords = shape[0];
-    ofmsg("[NumpyLoader::addDimension] numRecords=<%1%>", %myNumRecords);
+        npy_intp* shape = PyArray_SHAPE(ao);
+        myNumRecords = shape[0];
+        ofmsg("[NumpyLoader::addDimension] numRecords=<%1%>", %myNumRecords);
+    } 
+    else 
+    {
+        ofwarn("[NumpyLoader::addDimension] data object is not an array for dimension <%1%>", %name);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,6 +61,8 @@ void NumpyLoader::load(Field* f)
         PyArrayObject* ao = myObjects[dim->id];
         int nd = PyArray_NDIM(ao);
         npy_intp* shape = PyArray_SHAPE(ao);
+        PyArray_Descr* at = PyArray_DTYPE(ao);
+        oassert(at.kind == 'f');
     
         size_t sstart = f->domain.start;
         size_t slen = f->domain.length;
@@ -69,8 +76,8 @@ void NumpyLoader::load(Field* f)
         size_t c = 0;
         for(size_t i = sstart; i < sstart + slen; i += sstride)
         {
-            float* v = (float*)PyArray_GETPTR2(ao, i, j);
-            fielddata[c++] = *v;
+            double* v = (double*)PyArray_GETPTR2(ao, i, j);
+            fielddata[c++] = (float)*v;
         } 
 
         // Update field length
