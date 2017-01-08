@@ -57,7 +57,9 @@ bool PointCloud::setDimensions(Dimension* x, Dimension* y, Dimension* z)
         // Create LOD groups for each batch
         foreach(LOD& ll, myLODLevels)
         {
-            batch->addDrawable(&ll, start, myPointsPerBatch);
+            size_t numPoints = myPointsPerBatch;
+            if(start + numPoints > numRecords) numPoints = numRecords - start;
+            batch->addDrawable(&ll, start, numPoints);
         }
 
         // Batch bounding box is not ready at this point.
